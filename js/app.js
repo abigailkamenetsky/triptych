@@ -926,6 +926,13 @@ function highlight(text, q) {
 
 /* ══════════════ Boot ══════════════ */
 async function boot() {
+  // First, before anything that can block. The dedication card waits on a tap,
+  // and registering behind it meant the app only became offline-capable once
+  // she had dismissed it.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
   conjure(document);
   draw(document);
   summonDemons(document);
@@ -961,10 +968,6 @@ async function boot() {
   if (new URLSearchParams(location.search).has('summon')) {
     $('#fabSummon').click();
     history.replaceState({ view: 'summon' }, '', location.pathname);
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
   // Books opened from Files, if the browser offers the handler.
