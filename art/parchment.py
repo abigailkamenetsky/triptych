@@ -102,14 +102,14 @@ def build(name, base, warm, crack_strength, blot_strength, vignette=0.30, lift=0
 
 
 if __name__ == '__main__':
-    build('vellum-light', base=(252, 245, 227), warm=(228, 206, 166), crack_strength=0.16, blot_strength=0.09)
-    build('vellum-mid',   base=(240, 226, 196), warm=(198, 168, 122), crack_strength=0.22, blot_strength=0.13)
+    build('vellum-light', base=(247, 234, 200), warm=(205, 168, 112), crack_strength=0.20, blot_strength=0.13)
+    build('vellum-mid',   base=(236, 218, 180), warm=(186, 152, 104), crack_strength=0.24, blot_strength=0.15)
     build('vellum-dark',  base=(46, 38, 30),    warm=(22, 17, 13),    crack_strength=0.40, blot_strength=0.22)
     build('vellum-hell',  base=(38, 27, 20),    warm=(14, 9, 7),      crack_strength=0.45, blot_strength=0.26)
 
     # Reading grounds. No falloff, because the page is cropped from them at a
     # different scale than the shell and any vignette shows up as a seam.
-    build('page-light', base=(250, 242, 222), warm=(236, 220, 188), crack_strength=0.11, blot_strength=0.055, vignette=0.0, lift=0.05)
+    build('page-light', base=(249, 238, 208), warm=(228, 204, 158), crack_strength=0.13, blot_strength=0.07, vignette=0.0, lift=0.05)
     build('page-mid',   base=(243, 228, 194), warm=(224, 200, 156), crack_strength=0.13, blot_strength=0.07,  vignette=0.0, lift=0.04)
     build('page-dark',  base=(72, 66, 56),    warm=(56, 50, 42),    crack_strength=0.22, blot_strength=0.09,  vignette=0.0, lift=0.02)
     build('page-hell',  base=(30, 24, 19),    warm=(20, 15, 12),    crack_strength=0.30, blot_strength=0.10,  vignette=0.0, lift=0.0)

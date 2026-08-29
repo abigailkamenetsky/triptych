@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '6624ae514b8b';
+const VERSION = '02ace7e6b64a';
 const CACHE = 'delights-' + VERSION;
 
 const PRECACHE = [
@@ -46,6 +46,11 @@ const PRECACHE = [
   'assets/beasts/treeDisk.webp',
   'assets/beasts/treeInside.webp',
   'assets/beasts/winged.webp',
+  'assets/edge/bottom.webp',
+  'assets/edge/left.webp',
+  'assets/edge/rail.webp',
+  'assets/edge/right.webp',
+  'assets/edge/top.webp',
   'assets/ground/page-dark.webp',
   'assets/ground/page-hell.webp',
   'assets/ground/page-light.webp',
@@ -56,6 +61,16 @@ const PRECACHE = [
   'assets/ground/vellum-mid.webp',
   'css/bosch.css',
   'css/fonts.css',
+  'fonts/v15-rnCr-xNNww_2s0amA9M3knjsS_ulYHs.woff2',
+  'fonts/v15-rnCr-xNNww_2s0amA9M5knjsS_ul.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9uCt23BafaPWnII.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9uCt23PafaPWnIIMrY.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9vKsW3BafaPWnII.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9vKsW3PafaPWnIIMrY.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9vmtm3BafaPWnII.woff2',
+  'fonts/v15-rnCs-xNNww_2s0amA9vmtm3PafaPWnIIMrY.woff2',
+  'fonts/v15-rnCt-xNNww_2s0amA9M8onTmTNmnUHowCw.woff2',
+  'fonts/v15-rnCt-xNNww_2s0amA9M8onrmTNmnUHo.woff2',
   'fonts/v21-co3bmX5slCNuHLi8bLeY9MK7whWMhyjYp3tKky2F7i6C.woff2',
   'fonts/v21-co3bmX5slCNuHLi8bLeY9MK7whWMhyjYqXtKky2F7g.woff2',
   'fonts/v21-co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jD-htM8A_6pUKz9ugk.woff2',

@@ -105,35 +105,80 @@
   </defs>
 </svg>
 
+<!-- ═══ The painted frame. Hell down both sides, the procession above and below. ═══ -->
+<div class="frame" id="frame" aria-hidden="true">
+  <span class="frame-edge frame-top"></span>
+  <span class="frame-edge frame-bottom"></span>
+  <span class="frame-edge frame-left"></span>
+  <span class="frame-edge frame-right"></span>
+</div>
+
+<!-- ═══ The rail. Wide screens only. ═══ -->
+<nav class="rail" id="rail" aria-label="Sections">
+  <div class="rail-head">
+    <h1 class="rail-mark">Delights</h1>
+    <p class="rail-sub" id="railCount"></p>
+  </div>
+  <ul class="rail-nav">
+    <li><button class="rail-item" data-rail="library" aria-current="page">
+      <span class="rail-beast" data-beast="owl"></span><span>Library</span></button></li>
+    <li><button class="rail-item" data-rail="summon">
+      <span class="rail-beast" data-beast="strawberry"></span><span>Summon a book</span></button></li>
+    <li><button class="rail-item" data-rail="search">
+      <span class="rail-beast" data-beast="prince"></span><span>Search the shelf</span></button></li>
+    <li><button class="rail-item" data-rail="workshop">
+      <span class="rail-beast" data-beast="treeDisk"></span><span>The workshop</span></button></li>
+  </ul>
+  <div class="rail-foot" aria-hidden="true"><span data-beast="bagpipe"></span></div>
+</nav>
+
 <!-- ═══════════════════ LIBRARY ═══════════════════ -->
 <section class="view" id="viewLibrary" data-view="library">
   <header class="topbar topbar-library">
     <div class="topbar-row">
       <h1 class="wordmark">Delights</h1>
       <div class="topbar-actions">
-        <button class="glyph" id="btnSort" aria-label="Sort the shelf" aria-haspopup="menu">
-          <svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg>
-        </button>
         <button class="glyph" id="btnPrefs" aria-label="Settings">
           <span class="beak-btn" data-beast="prince" aria-hidden="true"></span>
         </button>
       </div>
     </div>
     <p class="shelf-count" id="shelfCount" aria-live="polite"></p>
-    <div class="frieze" aria-hidden="true">
-      <span data-beast="goldfinch"></span>
-      <span data-beast="salamander"></span>
-      <span data-beast="owl"></span>
-      <span data-beast="bagpipe"></span>
-      <span data-beast="cerberus"></span>
-      <span data-beast="butterfly"></span>
-      <span data-beast="raven"></span>
-    </div>
   </header>
 
   <div class="watermark" aria-hidden="true" data-beast="treeInside"></div>
 
   <div class="scroller" id="libraryScroller">
+    <div class="frieze" aria-hidden="true">
+      <span data-beast="goldfinch"></span>
+      <span data-beast="salamander"></span>
+      <span data-beast="butterfly"></span>
+      <span data-beast="owl"></span>
+      <span data-beast="drum"></span>
+      <span data-beast="cerberus"></span>
+      <span data-beast="flower"></span>
+      <span data-beast="rabbit"></span>
+      <span data-beast="lobster"></span>
+      <span data-beast="raven"></span>
+      <span data-beast="greenPerson"></span>
+      <span data-beast="iceSkater"></span>
+    </div>
+    <div class="shelf-tools">
+      <label class="searchbox">
+        <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
+        <input type="search" id="shelfSearch" placeholder="Search your library" autocomplete="off" aria-label="Search your library">
+      </label>
+      <div class="filters" role="group" aria-label="Filter the shelf">
+        <button class="filter" data-filter="all" aria-pressed="true">All</button>
+        <button class="filter" data-filter="reading" aria-pressed="false">Reading</button>
+        <button class="filter" data-filter="unread" aria-pressed="false">Unread</button>
+        <button class="filter" data-filter="finished" aria-pressed="false">Finished</button>
+      </div>
+      <button class="glyph glyph-sort" id="btnSort" aria-label="Sort the shelf">
+        <svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg>
+      </button>
+    </div>
+
     <div class="shelf" id="shelf" role="list" aria-label="Your books"></div>
 
     <div class="empty" id="emptyShelf" hidden>
@@ -157,12 +202,16 @@
     <div class="marginalia marginalia-l" aria-hidden="true">
       <span data-beast="owl"></span>
       <span data-beast="flower"></span>
+      <span data-beast="salamander"></span>
       <span data-beast="bagpipe"></span>
+      <span data-beast="lobster"></span>
     </div>
     <div class="marginalia marginalia-r" aria-hidden="true">
       <span data-beast="rabbit"></span>
       <span data-beast="goldfinch"></span>
+      <span data-beast="butterfly"></span>
       <span data-beast="prince"></span>
+      <span data-beast="winged"></span>
     </div>
 
     <div class="viewer-wrap">

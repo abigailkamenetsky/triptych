@@ -1,4 +1,4 @@
-@layer reset, tokens, base, chrome, library, reader, sheets, summon, util;
+@layer reset, tokens, base, chrome, library, reader, sheets, summon, util, shell, wide;
 
 /* ══════════════════════════════════════════════════════════════
    RESET
@@ -52,7 +52,7 @@
 
     --font-display: 'UnifrakturMaguntia', 'Papyrus', fantasy;
     --font-serif: 'EB Garamond', 'Iowan Old Style', 'Palatino', Georgia, serif;
-    --font-alt: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    --font-alt: 'Spectral', 'EB Garamond', 'Iowan Old Style', Georgia, serif;
 
     --tap: 44px;
     --pad: clamp(16px, 4.5vw, 28px);
@@ -609,8 +609,8 @@
   .reader-stage { position: absolute; inset: 0; display: grid; }
   /* The page steps back to leave the marginalia its own column. */
   :root { --gutter: 10px; }
-  :root[data-marginalia="on"] { --gutter: clamp(48px, 13vw, 78px); }
-  @media (width < 380px) { :root[data-marginalia="on"] { --gutter: 10px; } }
+  :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + clamp(28px, 7vw, 56px)); }
+  @media (width < 380px) { :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + 6px); } }
 
   /* The page is a lighter sheet laid on a darker board. The creatures live on
      the board, to either side of it. */
@@ -1464,5 +1464,363 @@
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SHELL. The painted frame and the rail.
+   ══════════════════════════════════════════════════════════════ */
+@layer shell {
+  :root {
+    --frame-w: 22px;
+    --frame-h: 20px;
+    --rail-w: 0px;
+  }
+
+  .frame {
+    position: fixed;
+    inset: 0 0 0 var(--rail-w);
+    z-index: 1;
+    pointer-events: none;
+  }
+  .frame-edge {
+    position: absolute;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+  .frame-top {
+    inset: 0 0 auto 0;
+    height: var(--frame-h);
+    background-image: url("../assets/edge/top.webp");
+    background-position: center top;
+  }
+  .frame-bottom {
+    inset: auto 0 0 0;
+    height: var(--frame-h);
+    background-image: url("../assets/edge/bottom.webp");
+    background-position: center bottom;
+  }
+  .frame-left {
+    inset: 0 auto 0 0;
+    width: var(--frame-w);
+    background-image: url("../assets/edge/left.webp");
+    background-position: left center;
+  }
+  .frame-right {
+    inset: 0 0 0 auto;
+    width: var(--frame-w);
+    background-image: url("../assets/edge/right.webp");
+    background-position: right center;
+  }
+  /* Limbo is meant to be empty, so the frame steps back. */
+  [data-theme="limbo"] .frame { opacity: .35; }
+
+  /* ── The rail ── */
+  .rail { display: none; }
+
+  /* ── Search and filters over the shelf ── */
+  .shelf-tools {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    padding-block: 18px 4px;
+  }
+  .searchbox {
+    flex: 1 1 240px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: var(--tap);
+    padding-inline: 13px;
+    background: color-mix(in oklab, var(--bg-sunk) 72%, transparent);
+    border-radius: 3px;
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  .searchbox .ico { flex: none; width: 18px; height: 18px; color: var(--fg-faint); }
+  .searchbox input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    font-family: var(--font-alt);
+    font-size: 16px;
+    color: var(--fg);
+  }
+  .searchbox input:focus { outline: none; }
+  .searchbox:focus-within { box-shadow: inset 0 0 0 1px var(--gold); }
+
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .filter {
+    padding: 7px 15px 8px;
+    border-radius: 999px;
+    font-family: var(--font-alt);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    color: var(--fg-soft);
+    box-shadow: inset 0 0 0 1px var(--rule);
+    transition: color 160ms var(--ease), background-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  .filter[aria-pressed="true"] {
+    color: var(--parch-050);
+    background: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink-900) 34%, transparent);
+  }
+
+  /* Content has to clear the painted frame. */
+  .scroller { padding-inline: calc(max(var(--pad), var(--sat-l)) + var(--frame-w) * .4)
+                              calc(max(var(--pad), var(--sat-r)) + var(--frame-w) * .4); }
+  .topbar { padding-inline: calc(max(var(--pad), var(--sat-l)) + var(--frame-w) * .4)
+                            calc(max(var(--pad), var(--sat-r)) + var(--frame-w) * .4); }
+
+  /* Covers get a gilded edge, the way a plate is mounted. */
+  .book-cover {
+    box-shadow:
+      var(--shadow),
+      inset 0 0 0 1px color-mix(in oklab, var(--ink-900) 40%, transparent),
+      0 0 0 1px color-mix(in oklab, var(--gold) 55%, transparent),
+      0 0 0 3px color-mix(in oklab, var(--ink-900) 30%, transparent);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WIDE. iPad and up: the rail appears and the frame grows.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  @media (width >= 760px) {
+    :root {
+      --rail-w: 268px;
+      --frame-w: 56px;
+      --frame-h: 48px;
+      --pad: 40px;
+    }
+
+    .view { inset-inline-start: var(--rail-w); }
+    :root[data-view="reader"] .view { inset-inline-start: 0; }
+    :root[data-view="reader"] .frame { inset-inline-start: 0; }
+    :root[data-view="reader"] .rail { display: none; }
+
+    .rail {
+      position: fixed;
+      inset-block: 0;
+      inset-inline-start: 0;
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      width: var(--rail-w);
+      padding: calc(var(--sat-top) + 26px) 0 calc(var(--sat-bot) + 18px);
+      background-image: url("../assets/edge/rail.webp");
+      background-size: cover;
+      background-position: center top;
+      box-shadow: inset -1px 0 0 color-mix(in oklab, var(--gold) 45%, transparent),
+                  6px 0 26px rgb(0 0 0 / .45);
+      isolation: isolate;
+    }
+    /* A scrim, so the painting stays visible under readable text. */
+    .rail::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(105deg, rgb(10 6 3 / .90) 0%, rgb(10 6 3 / .74) 55%, rgb(10 6 3 / .58) 100%);
+    }
+
+    .rail-head { padding: 0 24px 22px; }
+    .rail-mark {
+      font-family: var(--font-display);
+      font-size: 38px;
+      font-weight: 400;
+      line-height: 1;
+      color: #e5c877;
+      text-shadow: 0 1px 0 rgb(0 0 0 / .8), 0 0 22px rgb(203 156 47 / .35);
+    }
+    .rail-sub {
+      margin-top: 7px;
+      font-family: var(--font-alt);
+      font-size: 13px;
+      font-style: italic;
+      letter-spacing: .03em;
+      color: #b09a72;
+    }
+
+    .rail-nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; }
+    .rail-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 4px;
+      text-align: start;
+      font-family: var(--font-alt);
+      font-size: 16.5px;
+      font-weight: 500;
+      color: #cdb894;
+      transition: background-color 180ms var(--ease), color 180ms var(--ease);
+    }
+    .rail-item:hover { color: #f0e2c2; background: rgb(255 255 255 / .06); }
+    .rail-item[aria-current="page"] {
+      color: #f6e9c8;
+      background: linear-gradient(90deg, rgb(187 64 40 / .55), rgb(187 64 40 / .12));
+      box-shadow: inset 2px 0 0 #cb9c2f;
+    }
+    .rail-beast {
+      flex: none;
+      display: block;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgb(203 156 47 / .5);
+    }
+    .rail-beast .beast { object-fit: cover; }
+
+    .rail-foot { margin-top: auto; padding: 18px 24px 0; opacity: .85; }
+    .rail-foot span { display: block; width: 92px; margin-inline: auto; }
+
+    /* The shelf can carry far more at this width. */
+    .shelf {
+      grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+      gap: 30px 24px;
+    }
+    .wordmark { display: none; }
+    .topbar-library .topbar-row { justify-content: flex-end; }
+    .shelf-count { display: none; }
+
+    /* The floating button is redundant once the rail carries Summon. */
+    .fab { display: none; }
+
+    .frieze span { width: 44px; height: 40px; }
+  }
+
+  /* Landscape iPad has the height for a fuller frame. */
+  @media (width >= 1100px) {
+    :root { --frame-w: 68px; --frame-h: 54px; }
+    .shelf { grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CORRECTIONS. Seating the frame against everything around it.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  /* The creatures belong inside the painted frame, not on top of it. */
+  .marginalia-l { inset-inline-start: calc(var(--frame-w) + 4px); }
+  .marginalia-r { inset-inline-end: calc(var(--frame-w) + 4px); }
+
+  /* A partial line jammed against the chrome reads as a rendering fault, so
+     the page keeps a little air at the head and foot. */
+  .viewer-wrap {
+    inset-block: calc(var(--sat-top) + var(--frame-h) * .55)
+                calc(var(--sat-bot) + var(--frame-h) * .55 + 22px);
+  }
+
+  .scrub-crawler { margin-inline-start: calc(var(--frame-w) * .5); }
+
+  /* The frieze now sits over the shelf, so it needs its own breathing room
+     and no rule to collide with. */
+  .frieze {
+    margin-top: 0;
+    padding-block: 14px 12px;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .frieze::before { inset-block-end: 0; opacity: .55; }
+  .frieze span { opacity: .96; }
+
+  /* Titles reserve two lines so every author sits on the same baseline. */
+  .book-title { min-height: 2.44em; }
+
+  /* Sparse shelves look broken. Pack them tighter. */
+  @media (width >= 760px) {
+    :root { --rail-w: 268px; --frame-w: 52px; --frame-h: 44px; --pad: 34px; }
+    .view { inset-inline-start: var(--rail-w); }
+    :root[data-view="reader"] .view { inset-inline-start: 0; }
+    :root[data-view="reader"] .frame { inset-inline-start: 0; }
+    :root[data-view="reader"] .rail { display: none; }
+    .rail { display: flex; }
+    .wordmark, .shelf-count, .fab { display: none; }
+    .topbar-library { padding-block: calc(var(--sat-top) + 8px) 6px; }
+    .topbar-library .topbar-row { justify-content: flex-end; }
+    .shelf { grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 26px 20px; }
+    .frieze span { width: 40px; height: 36px; }
+  }
+  @media (width >= 1100px) {
+    :root { --frame-w: 64px; --frame-h: 52px; --pad: 40px; }
+    .shelf { grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 30px 22px; }
+    .frieze span { width: 46px; height: 42px; }
+  }
+
+  /* Phones keep the frame thin enough to leave the page its width. */
+  @media (width < 760px) {
+    :root { --frame-w: 18px; --frame-h: 16px; }
+    .marginalia-l { inset-inline-start: calc(var(--frame-w) + 2px); }
+    .marginalia-r { inset-inline-end: calc(var(--frame-w) + 2px); }
+    .viewer-wrap { inset-block: calc(var(--sat-top) + 6px) calc(var(--sat-bot) + 30px); }
+  }
+}
+
+
+@layer wide {
+  /* Content must clear the painted frame outright, not merely start at it. */
+  .scroller {
+    padding-inline: calc(max(var(--pad), var(--sat-l)) + var(--frame-w) * .85)
+                    calc(max(var(--pad), var(--sat-r)) + var(--frame-w) * .85);
+  }
+  .topbar {
+    padding-inline: calc(max(var(--pad), var(--sat-l)) + var(--frame-w) * .85)
+                    calc(max(var(--pad), var(--sat-r)) + var(--frame-w) * .85);
+  }
+  .glyph-sort { flex: none; margin-inline-start: auto; }
+
+  @media (width >= 760px) {
+    /* The rail carries every destination, so the header has nothing left to do. */
+    .topbar-library { display: none; }
+    .frieze { padding-block: calc(var(--frame-h) * .7 + 10px) 12px; }
+  }
+}
+
+
+@layer wide {
+  /* The frieze is the first thing in the scroller, so it has to start below
+     the painted band rather than under it. */
+  @media (width >= 760px) {
+    .frieze { padding-block: calc(var(--frame-h) + 16px) 12px; }
+  }
+
+  /* iPad portrait: a 268px rail eats the shelf. Narrow everything so the
+     grid still reads as a library rather than two lonely columns. */
+  @media (760px <= width < 1000px) {
+    :root { --rail-w: 206px; --frame-w: 38px; --frame-h: 34px; --pad: 20px; }
+    .rail-head { padding-inline: 18px; }
+    .rail-mark { font-size: 30px; }
+    .rail-nav { padding-inline: 9px; }
+    .rail-item { padding: 10px 10px; font-size: 15.5px; gap: 10px; }
+    .rail-beast { width: 26px; height: 26px; }
+    .rail-foot span { width: 72px; }
+    .shelf { grid-template-columns: repeat(auto-fill, minmax(106px, 1fr)); gap: 24px 18px; }
+    .frieze span { width: 34px; height: 31px; }
+    .searchbox { flex-basis: 180px; }
+  }
+}
+
+
+@layer wide {
+  /* On a phone the painted frame is the marginalia. There is no room for a
+     frame, a column of roundels and a line long enough to read comfortably,
+     and the line wins. */
+  @media (width < 760px) {
+    .marginalia { display: none; }
+    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + 12px); }
+  }
+  /* iPad has the width for both, so the roundels sit clear of the page. */
+  @media (width >= 760px) {
+    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + clamp(46px, 6vw, 74px)); }
+    .marginalia { width: clamp(40px, 5vw, 62px); }
   }
 }

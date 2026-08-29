@@ -23,6 +23,15 @@ const state = {
   chromeTimer: null,
   editing: false,
   coverUrls: new Map(),
+  query: '',
+  filter: 'all',
+};
+
+const FILTERS = {
+  all: () => true,
+  reading: (b) => (b.percent || 0) > 0.01 && (b.percent || 0) < 0.97,
+  unread: (b) => (b.percent || 0) <= 0.01,
+  finished: (b) => (b.percent || 0) >= 0.97,
 };
 
 /* ══════════════ Toast ══════════════ */
@@ -51,7 +60,12 @@ function applyShell() {
 function setView(name, push = true) {
   if (state.view === name) return;
   state.view = name;
+  root.dataset.view = name;
   for (const v of $$('.view')) v.hidden = v.dataset.view !== name;
+  for (const r of $$('.rail-item')) {
+    const on = r.dataset.rail === name;
+    if (on) r.setAttribute('aria-current', 'page'); else r.removeAttribute('aria-current');
+  }
   if (push) history.pushState({ view: name }, '');
   if (name !== 'reader') showChrome();
 }
@@ -83,16 +97,31 @@ async function renderShelf() {
   const empty = $('#emptyShelf');
   releaseCovers();
 
-  const n = state.books.length;
-  $('#shelfCount').textContent = n
-    ? `${n} ${n === 1 ? 'volume' : 'volumes'} in the garden`
-    : '';
-  empty.hidden = n > 0;
-  $('#btnSort').hidden = n < 2;
+  const total = state.books.length;
+  const q = state.query.trim().toLowerCase();
+  const shown = state.books
+    .filter(FILTERS[state.filter] || FILTERS.all)
+    .filter((b) => !q || `${b.title} ${b.author || ''}`.toLowerCase().includes(q));
 
-  if (!n) { shelf.innerHTML = ''; state.editing = false; shelf.dataset.editing = 'false'; return; }
+  const label = total ? `${total} ${total === 1 ? 'volume' : 'volumes'} in the garden` : '';
+  $('#shelfCount').textContent = label;
+  const railCount = $('#railCount');
+  if (railCount) railCount.textContent = label;
+  $('#shelfTools') && ($('#shelfTools').hidden = total < 2);
+  const tools = $('.shelf-tools');
+  if (tools) tools.hidden = total < 2;
 
-  shelf.innerHTML = sortBooks(state.books).map((b, i) => {
+  empty.hidden = total > 0;
+  $('#btnSort').hidden = total < 2;
+
+  if (!total) { shelf.innerHTML = ''; state.editing = false; shelf.dataset.editing = 'false'; return; }
+
+  if (!shown.length) {
+    shelf.innerHTML = `<p class="empty-note" style="grid-column:1/-1">Nothing on the shelf matches that.</p>`;
+    return;
+  }
+
+  shelf.innerHTML = sortBooks(shown).map((b, i) => {
     let art;
     if (b.cover) {
       const url = URL.createObjectURL(b.cover);
@@ -758,10 +787,38 @@ function wire() {
   });
 
   const openSummon = () => { setView('summon'); summon.reset(); };
-  $('#fabSummon').addEventListener('click', openSummon);
+  $('#fabSummon')?.addEventListener('click', openSummon);
   $('[data-action="summon"]')?.addEventListener('click', openSummon);
   $('[data-action="leave-summon"]').addEventListener('click', () => history.back());
   $('[data-action="close-book"]').addEventListener('click', () => closeBook());
+
+  // The rail carries the same destinations as the phone chrome.
+  for (const item of $$('.rail-item')) {
+    item.addEventListener('click', async () => {
+      const to = item.dataset.rail;
+      if (to === 'library') { if (state.view !== 'library') history.back(); }
+      else if (to === 'summon') openSummon();
+      else if (to === 'search') {
+        if (state.view !== 'library') history.back();
+        setTimeout(() => $('#shelfSearch')?.focus(), 220);
+      } else if (to === 'workshop') { await buildWorkshop(); openSheet('#sheetPrefs'); }
+    });
+  }
+
+  // Searching and filtering the shelf.
+  let shelfTimer;
+  $('#shelfSearch')?.addEventListener('input', (e) => {
+    clearTimeout(shelfTimer);
+    const v = e.target.value;
+    shelfTimer = setTimeout(() => { state.query = v; renderShelf(); }, 160);
+  });
+  for (const chip of $$('.filter')) {
+    chip.addEventListener('click', () => {
+      state.filter = chip.dataset.filter;
+      for (const c of $$('.filter')) c.setAttribute('aria-pressed', String(c === chip));
+      renderShelf();
+    });
+  }
 
   $('#fileInput').addEventListener('change', (e) => {
     importFiles(e.target.files);
