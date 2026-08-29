@@ -98,3 +98,39 @@ export async function draw(root = document) {
     if (dims) el.style.aspectRatio = `${dims[0]} / ${dims[1]}`;
   }
 }
+
+
+/* ── Demons ───────────────────────────────────────────────────
+   Free-standing figures lifted out of The Temptation of Saint Anthony and the
+   Garden by art/demons.py, in full colour, meant to stand on the page rather
+   than sit in a medallion beside it.
+   ───────────────────────────────────────────────────────────── */
+
+export const demonSrc = (name) => `assets/demons/${name}.webp`;
+
+let demonIndex = null;
+
+export async function loadDemonIndex() {
+  if (demonIndex) return demonIndex;
+  try {
+    demonIndex = await (await fetch('assets/demons/index.json')).json();
+  } catch {
+    demonIndex = {};
+  }
+  return demonIndex;
+}
+
+/* Fill every [data-demon] with its figure, sized to its own proportions. */
+export async function summon(root = document) {
+  const slots = [...root.querySelectorAll('[data-demon]')];
+  if (!slots.length) return;
+  const index = await loadDemonIndex();
+  for (const el of slots) {
+    if (el.firstElementChild) continue;
+    const name = el.dataset.demon;
+    const dims = index[name];
+    if (dims) el.style.aspectRatio = `${dims[0]} / ${dims[1]}`;
+    el.innerHTML = `<img class="demon" src="${demonSrc(name)}" alt="" ` +
+                   `loading="lazy" decoding="async" draggable="false">`;
+  }
+}

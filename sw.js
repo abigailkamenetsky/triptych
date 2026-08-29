@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = 'ded428e4dcec';
+const VERSION = '64a034463a2e';
 const CACHE = 'delights-' + VERSION;
 
 const PRECACHE = [
@@ -46,6 +46,14 @@ const PRECACHE = [
   'assets/beasts/treeDisk.webp',
   'assets/beasts/treeInside.webp',
   'assets/beasts/winged.webp',
+  'assets/demons/camel.webp',
+  'assets/demons/drummer.webp',
+  'assets/demons/index.json',
+  'assets/demons/messenger.webp',
+  'assets/demons/porcupine.webp',
+  'assets/demons/prince.webp',
+  'assets/demons/strawberry.webp',
+  'assets/demons/wheelman.webp',
   'assets/edge/bottom.webp',
   'assets/edge/left.webp',
   'assets/edge/rail.webp',

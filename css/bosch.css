@@ -1891,3 +1891,45 @@
     .marginalia { width: clamp(58px, 7vw, 92px); }
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   FIENDS. Full colour figures standing in the margin of the page.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  .fiend {
+    position: relative;
+    display: block;
+    width: 100%;
+    /* Lifted off the vellum, the way the reference sets them. */
+    filter: drop-shadow(0 3px 5px rgb(46 26 8 / .34))
+            drop-shadow(0 10px 18px rgb(46 26 8 / .20));
+  }
+  .fiend .demon {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Nothing in Bosch stands perfectly square to the frame. */
+  .fiend:nth-child(odd)  { rotate: -1.5deg; }
+  .fiend:nth-child(even) { rotate: 1.5deg; }
+  .marginalia-r .fiend:nth-child(even) { rotate: -2deg; }
+
+  [data-theme="dusk"] .fiend,
+  [data-theme="hell"] .fiend,
+  [data-theme="limbo"] .fiend {
+    filter: drop-shadow(0 3px 6px rgb(0 0 0 / .6)) brightness(.92) saturate(.95);
+  }
+
+  /* No vine behind painted figures; that was for the drawings. */
+  .marginalia::before { display: none; }
+
+  @media (width >= 760px) {
+    .marginalia { width: clamp(64px, 8vw, 108px); justify-content: space-around; }
+    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + clamp(64px, 8.4vw, 114px)); }
+  }
+}
