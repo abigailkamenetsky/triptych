@@ -60,3 +60,41 @@ export const PLATE_PIGMENTS = [
   ['#57334f', '#291726'], ['#9a6a1c', '#4a3009'], ['#a8341f', '#4a160c'],
   ['#4a5a68', '#212a33'], ['#6b4a2a', '#2f2011'],
 ];
+
+
+/* ── Ink drawings ─────────────────────────────────────────────
+   Alpha-only plates traced from the paintings by art/ink.py. The page uses
+   them as CSS masks, so a creature is drawn in exactly the ink the text is
+   set in and follows the theme without a second asset.
+   ───────────────────────────────────────────────────────────── */
+
+export const inkSrc = (name) => `assets/ink/${name}.webp`;
+
+let inkIndex = null;
+
+export async function loadInkIndex() {
+  if (inkIndex) return inkIndex;
+  try {
+    inkIndex = await (await fetch('assets/ink/index.json')).json();
+  } catch {
+    inkIndex = {};
+  }
+  return inkIndex;
+}
+
+/* Give every [data-ink] its mask and its proportions. */
+export async function draw(root = document) {
+  const marks = [...root.querySelectorAll('[data-ink]')];
+  if (!marks.length) return;
+  const index = await loadInkIndex();
+  for (const el of marks) {
+    const name = el.dataset.ink;
+    // Resolved against the document. A url() carried in a custom property
+    // would resolve against the stylesheet instead and miss by one directory.
+    const href = new URL(inkSrc(name), document.baseURI).href;
+    el.style.maskImage = `url("${href}")`;
+    el.style.webkitMaskImage = `url("${href}")`;
+    const dims = index[name];
+    if (dims) el.style.aspectRatio = `${dims[0]} / ${dims[1]}`;
+  }
+}

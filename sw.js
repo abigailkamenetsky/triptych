@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '02ace7e6b64a';
+const VERSION = 'ded428e4dcec';
 const CACHE = 'delights-' + VERSION;
 
 const PRECACHE = [
@@ -59,6 +59,17 @@ const PRECACHE = [
   'assets/ground/vellum-hell.webp',
   'assets/ground/vellum-light.webp',
   'assets/ground/vellum-mid.webp',
+  'assets/ink/butterfly.webp',
+  'assets/ink/flower.webp',
+  'assets/ink/goldfinch.webp',
+  'assets/ink/iceSkater.webp',
+  'assets/ink/index.json',
+  'assets/ink/key.webp',
+  'assets/ink/owl.webp',
+  'assets/ink/porcupine.webp',
+  'assets/ink/rabbit.webp',
+  'assets/ink/skater.webp',
+  'assets/ink/winged.webp',
   'css/bosch.css',
   'css/fonts.css',
   'fonts/v15-rnCr-xNNww_2s0amA9M3knjsS_ulYHs.woff2',

@@ -4,7 +4,7 @@
  * import and backup.
  */
 
-import { conjure, beast, beastFor, PLATE_PIGMENTS } from './bestiary.js';
+import { conjure, draw, beast, beastFor, PLATE_PIGMENTS } from './bestiary.js';
 import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
 import { Reader } from './reader.js';
@@ -926,6 +926,7 @@ function highlight(text, q) {
 /* ══════════════ Boot ══════════════ */
 async function boot() {
   conjure(document);
+  draw(document);
   applyShell();
   wire();
 

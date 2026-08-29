@@ -1820,7 +1820,74 @@
   }
   /* iPad has the width for both, so the roundels sit clear of the page. */
   @media (width >= 760px) {
-    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + clamp(46px, 6vw, 74px)); }
+    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) + clamp(58px, 7.4vw, 98px)); }
     .marginalia { width: clamp(40px, 5vw, 62px); }
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   MARGINALIA. Drawings, not photographs.
+   The plate is an alpha mask, so the creature is laid down in the same ink
+   the text is set in and shifts with the theme by itself.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  :root {
+    --ink-strength: .52;
+    --ink-blend: multiply;
+  }
+  [data-theme="dusk"], [data-theme="hell"], [data-theme="limbo"] {
+    /* Multiply does nothing useful over a dark ground. */
+    --ink-strength: .40;
+    --ink-blend: normal;
+  }
+
+  .marginalia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    gap: 4%;
+  }
+  .marginalia span:not(.drawn) { filter: none; }
+
+  .drawn {
+    display: block;
+    width: 100%;
+    background-color: var(--page-fg);
+    -webkit-mask-image: var(--ink);
+    mask-image: var(--ink);
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    opacity: var(--ink-strength);
+    mix-blend-mode: var(--ink-blend);
+  }
+  /* A drawn hand is never perfectly square to the page. */
+  .drawn:nth-child(odd)  { rotate: -2.5deg; }
+  .drawn:nth-child(even) { rotate: 2deg; scale: .86; }
+  .drawn:nth-child(3n)   { scale: 1.06; }
+
+  /* The vine they are perched on, in the same ink, barely there. */
+  .marginalia::before {
+    content: "";
+    position: absolute;
+    inset-block: 6%;
+    inset-inline-start: 50%;
+    width: 1px;
+    translate: -50% 0;
+    background: linear-gradient(
+      transparent,
+      color-mix(in oklab, var(--page-fg) 26%, transparent) 12%,
+      color-mix(in oklab, var(--page-fg) 26%, transparent) 88%,
+      transparent);
+    mix-blend-mode: var(--ink-blend);
+  }
+
+  @media (width >= 760px) {
+    .marginalia { width: clamp(58px, 7vw, 92px); }
   }
 }
