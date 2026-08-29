@@ -28,14 +28,22 @@ async function loadFontFaces() {
 
 /* Page palettes mirror the shell themes. */
 const PAGE_THEMES = {
-  garden: { bg: '#f4ead4', fg: '#241a0d', link: '#a8341f', cap: '#a8341f', capShadow: '#b98c22', sel: 'rgba(185,140,34,.32)' },
-  vellum: { bg: '#f0dfb8', fg: '#33240f', link: '#9c4a1c', cap: '#9c4a1c', capShadow: '#b98c22', sel: 'rgba(156,74,28,.24)' },
-  dusk:   { bg: '#423e36', fg: '#e9dfc9', link: '#cf8368', cap: '#cf8368', capShadow: '#8a7a52', sel: 'rgba(207,131,104,.3)' },
-  hell:   { bg: '#171310', fg: '#ddcda9', link: '#d9611f', cap: '#d9611f', capShadow: '#7a3d13', sel: 'rgba(217,97,31,.32)' },
+  garden: { bg: '#f7efdc', fg: '#241a0d', link: '#a8341f', cap: '#a8341f', capShadow: '#b98c22', sel: 'rgba(185,140,34,.32)' },
+  vellum: { bg: '#f2e3c2', fg: '#33240f', link: '#9c4a1c', cap: '#9c4a1c', capShadow: '#b98c22', sel: 'rgba(156,74,28,.24)' },
+  dusk:   { bg: '#464036', fg: '#e9dfc9', link: '#cf8368', cap: '#cf8368', capShadow: '#8a7a52', sel: 'rgba(207,131,104,.3)' },
+  hell:   { bg: '#1c1712', fg: '#ddcda9', link: '#d9611f', cap: '#d9611f', capShadow: '#7a3d13', sel: 'rgba(217,97,31,.32)' },
   limbo:  { bg: '#000000', fg: '#c3b494', link: '#b98c22', cap: '#b98c22', capShadow: '#4a3809', sel: 'rgba(185,140,34,.3)' },
 };
 
 const MARGIN_EM = [1.1, 2.0, 3.2, 4.6];
+
+/* Reading grounds, painted inside the book document so the page and its
+   texture always move together and never show a seam against the shell. */
+const PAGE_GROUND = {
+  garden: 'page-light', vellum: 'page-mid', dusk: 'page-dark', hell: 'page-hell', limbo: null,
+};
+
+
 
 function pageCss() {
   const t = PAGE_THEMES[prefs.theme] || PAGE_THEMES.garden;
@@ -44,11 +52,22 @@ function pageCss() {
   const side = MARGIN_EM[prefs.margin] ?? 2.0;
   const align = prefs.justify ? 'justify' : 'left';
 
+  const groundName = PAGE_GROUND[prefs.theme];
+  const ground = groundName
+    ? `background-image: url(${new URL(`assets/ground/${groundName}.webp`, location.href).href}) !important;
+       background-size: 1400px 1400px !important;
+       background-position: left top !important;
+       background-repeat: repeat !important;
+       background-attachment: local !important;`
+    : '';
+
   return `
 ${fontFaceCss}
 html { -webkit-text-size-adjust: none; text-size-adjust: none; }
+html { background: ${t.bg} !important; }
 body {
-  background: ${t.bg} !important;
+  background-color: ${t.bg} !important;
+  ${ground}
   color: ${t.fg} !important;
   ${family}
   font-size: ${prefs.fontScale}% !important;
@@ -304,6 +323,7 @@ export class Reader {
       timer = setTimeout(() => {
         const cfi = this.location?.start?.cfi;
         try {
+          this.restyle();
           this.rendition.resize(w, h);
           if (cfi) this.rendition.display(cfi);
         } catch { /* rendition torn down mid-resize */ }

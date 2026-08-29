@@ -115,29 +115,29 @@
           <svg class="ico" aria-hidden="true"><use href="#i-sort"/></svg>
         </button>
         <button class="glyph" id="btnPrefs" aria-label="Settings">
-          <span class="beak-btn" data-bestiary="birdPrinceHead" aria-hidden="true"></span>
+          <span class="beak-btn" data-beast="prince" aria-hidden="true"></span>
         </button>
       </div>
     </div>
     <p class="shelf-count" id="shelfCount" aria-live="polite"></p>
     <div class="frieze" aria-hidden="true">
-      <span data-bestiary="fish"></span>
-      <span data-bestiary="strawberry"></span>
-      <span data-bestiary="owl"></span>
-      <span data-bestiary="hurdyGurdy"></span>
-      <span data-bestiary="beast"></span>
-      <span data-bestiary="strawberry"></span>
-      <span data-bestiary="fish"></span>
+      <span data-beast="goldfinch"></span>
+      <span data-beast="salamander"></span>
+      <span data-beast="owl"></span>
+      <span data-beast="bagpipe"></span>
+      <span data-beast="cerberus"></span>
+      <span data-beast="butterfly"></span>
+      <span data-beast="raven"></span>
     </div>
   </header>
 
-  <div class="watermark" aria-hidden="true" data-bestiary="treeMan"></div>
+  <div class="watermark" aria-hidden="true" data-beast="treeInside"></div>
 
   <div class="scroller" id="libraryScroller">
     <div class="shelf" id="shelf" role="list" aria-label="Your books"></div>
 
     <div class="empty" id="emptyShelf" hidden>
-      <div class="empty-art" data-bestiary="treeMan" aria-hidden="true"></div>
+      <div class="empty-art" data-beast="treeDisk" aria-hidden="true"></div>
       <h2 class="empty-title">The garden is bare</h2>
       <p class="empty-body">Nothing has been planted here yet. Summon a book and it will take root on this shelf.</p>
       <button class="btn btn-primary" data-action="summon">Summon a book</button>
@@ -146,7 +146,7 @@
   </div>
 
   <button class="fab" id="fabSummon" aria-label="Summon a book">
-    <span class="fab-art" data-bestiary="funnelMan" aria-hidden="true"></span>
+    <span class="fab-art" data-beast="strawberry" aria-hidden="true"></span>
     <span class="fab-label">Summon</span>
   </button>
 </section>
@@ -155,20 +155,20 @@
 <section class="view" id="viewReader" data-view="reader" hidden>
   <div class="reader-stage" id="readerStage">
     <div class="marginalia marginalia-l" aria-hidden="true">
-      <span data-bestiary="owl"></span>
-      <span data-bestiary="strawberry"></span>
-      <span data-bestiary="hurdyGurdy"></span>
+      <span data-beast="owl"></span>
+      <span data-beast="flower"></span>
+      <span data-beast="bagpipe"></span>
     </div>
     <div class="marginalia marginalia-r" aria-hidden="true">
-      <span data-bestiary="beast"></span>
-      <span data-bestiary="fish"></span>
-      <span data-bestiary="birdPrinceHead"></span>
+      <span data-beast="rabbit"></span>
+      <span data-beast="goldfinch"></span>
+      <span data-beast="prince"></span>
     </div>
 
     <div class="viewer-wrap">
       <div id="viewer"></div>
       <div class="page-loading" id="pageLoading" hidden>
-        <span class="egg-spin" data-bestiary="egg" aria-hidden="true"></span>
+        <span class="egg-spin" data-beast="egg" aria-hidden="true"></span>
       </div>
     </div>
 
@@ -202,7 +202,7 @@
       <div class="scrub-track">
         <input type="range" id="scrubber" min="0" max="1000" value="0" step="1" aria-label="Position in book">
         <span class="scrub-fill" id="scrubFill" aria-hidden="true"></span>
-        <span class="scrub-crawler" id="scrubCrawler" data-bestiary="hurdyGurdy" aria-hidden="true"></span>
+        <span class="scrub-crawler" id="scrubCrawler" data-beast="skater" aria-hidden="true"></span>
       </div>
     </div>
     <div class="scrub-meta">
@@ -292,7 +292,7 @@
 <!-- ═══════════════════ INSTALL COACH (iOS home screen) ═══════════════════ -->
 <div class="install-coach" id="installCoach" hidden>
   <div class="install-card">
-    <div class="install-art" data-bestiary="egg" aria-hidden="true"></div>
+    <div class="install-art" data-beast="egg" aria-hidden="true"></div>
     <h2>Put me on your home screen</h2>
     <p>Delights wants to live on your home screen so it opens like any other app, with no address bar and no internet needed.</p>
     <ol class="install-steps">
@@ -301,6 +301,23 @@
       <li><span class="num">3</span> Tap <b>Add</b>. Then open Delights from your home screen.</li>
     </ol>
     <button class="btn btn-ghost" id="dismissCoach">I will do it later</button>
+  </div>
+</div>
+
+<!-- ═══════════════════ DEDICATION (first launch only) ═══════════════════ -->
+<div class="dedication" id="dedication" hidden>
+  <div class="dedication-card" role="dialog" aria-labelledby="dedHeading" aria-modal="true">
+    <div class="ded-crown" aria-hidden="true">
+      <span data-beast="flower"></span>
+      <span data-beast="treeDisk"></span>
+      <span data-beast="butterfly"></span>
+    </div>
+    <h1 class="ded-heading" id="dedHeading"></h1>
+    <div class="ded-rule" aria-hidden="true"></div>
+    <div class="ded-body" id="dedBody"></div>
+    <p class="ded-sign" id="dedSign"></p>
+    <p class="ded-date" id="dedDate"></p>
+    <button class="btn btn-primary" id="dedEnter"></button>
   </div>
 </div>
 

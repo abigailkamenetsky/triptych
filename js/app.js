@@ -4,11 +4,12 @@
  * import and backup.
  */
 
-import { conjure, PLATE_MARKS, PLATE_PIGMENTS } from './bestiary.js';
+import { conjure, beast, beastFor, PLATE_PIGMENTS } from './bestiary.js';
 import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
 import { Reader } from './reader.js';
 import { Summon } from './summon.js';
+import { DEDICATION } from './dedication.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -101,7 +102,7 @@ async function renderShelf() {
       const [a, c] = PLATE_PIGMENTS[i % PLATE_PIGMENTS.length];
       art = `<span class="book-plate" style="--plate-a:${a};--plate-b:${c}">
           <span class="book-plate-title">${escapeHtml(b.title)}</span>
-          <span class="book-plate-mark">${PLATE_MARKS[i % PLATE_MARKS.length]}</span>
+          <span class="book-plate-mark">${beast(beastFor(b.id))}</span>
         </span>`;
     }
     const pct = Math.round((b.percent || 0) * 100);
@@ -232,32 +233,58 @@ async function importFiles(files, opts = {}) {
   return added;
 }
 
-/* A shelf should never be empty on the first morning. These four are public
-   domain, freely given by Standard Ebooks, and can be banished like any other. */
-const SEEDS = [
-  'seed/mary-shelley_frankenstein.epub',
-  'seed/bram-stoker_dracula.epub',
-  'seed/oscar-wilde_the-picture-of-dorian-gray.epub',
-  'seed/jane-austen_pride-and-prejudice.epub',
-];
-
+/* A shelf should never be empty on the first morning. The titles are listed in
+   seed/seeds.json, which `node tools/seeds.mjs <url>...` rewrites for you. */
 async function seedFirstRun() {
   if (localStorage.getItem('delights.seeded') === '1') return;
   if ((await db.listBooks()).length) { localStorage.setItem('delights.seeded', '1'); return; }
 
+  let names = [];
+  try {
+    const res = await fetch('seed/seeds.json', { cache: 'no-store' });
+    if (res.ok) names = await res.json();
+  } catch { /* offline on the very first run, so leave the shelf bare */ }
+
   const files = [];
-  for (const path of SEEDS) {
+  for (const name of names) {
     try {
-      const res = await fetch(path, { cache: 'no-store' });
+      const res = await fetch(`seed/${name}`, { cache: 'no-store' });
       if (!res.ok) continue;
-      files.push(new File([await res.blob()], path.split('/').pop(), { type: 'application/epub+zip' }));
-    } catch { /* offline on the very first run */ }
+      files.push(new File([await res.blob()], name, { type: 'application/epub+zip' }));
+    } catch { /* skip the ones that will not come */ }
   }
   if (!files.length) return;
 
   const n = await importFiles(files, { quiet: true });
   localStorage.setItem('delights.seeded', '1');
-  if (n) toast('Four to begin with. Happy birthday.', 5200);
+  return n;
+}
+
+/* ══════════════ The frontispiece ══════════════ */
+function showDedication() {
+  if (localStorage.getItem('delights.dedicated') === '1') return Promise.resolve();
+  const d = DEDICATION;
+  if (!d?.lines?.length) { localStorage.setItem('delights.dedicated', '1'); return Promise.resolve(); }
+
+  $('#dedHeading').textContent = d.heading || '';
+  $('#dedBody').innerHTML = d.lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('');
+  $('#dedSign').textContent = d.signature || '';
+  $('#dedDate').textContent = d.date || '';
+  const enter = $('#dedEnter');
+  enter.textContent = d.cta || 'Begin';
+
+  const card = $('#dedication');
+  card.hidden = false;
+  enter.focus({ preventScroll: true });
+
+  return new Promise((resolve) => {
+    enter.addEventListener('click', () => {
+      localStorage.setItem('delights.dedicated', '1');
+      card.style.transition = 'opacity 520ms var(--ease)';
+      card.style.opacity = '0';
+      setTimeout(() => { card.hidden = true; card.style.cssText = ''; resolve(); }, 520);
+    }, { once: true });
+  });
 }
 
 /* ══════════════ Reader ══════════════ */
@@ -711,7 +738,10 @@ function maybeCoach() {
   if (isStandalone()) return;
   if (!isIOS()) return;
   if (localStorage.getItem('delights.coached') === '1') return;
-  setTimeout(() => { $('#installCoach').hidden = false; }, 1200);
+  // Only ever in front of the shelf. It must never land on top of a book.
+  setTimeout(() => {
+    if (state.view === 'library' && $('#scrim').hidden) $('#installCoach').hidden = false;
+  }, 1600);
 }
 
 /* ══════════════ Wiring ══════════════ */
@@ -856,7 +886,16 @@ async function boot() {
   history.replaceState({ view: 'library' }, '');
   await renderShelf();
   await db.requestPersistence().catch(() => {});
-  await seedFirstRun();
+
+  // The books arrive behind the card, so the shelf is ready when she taps through.
+  const firstRun = localStorage.getItem('delights.seeded') !== '1';
+  const seeding = seedFirstRun();
+  const dedicated = localStorage.getItem('delights.dedicated') === '1';
+  await showDedication();
+  const seeded = await seeding;
+  if (firstRun && seeded && dedicated) {
+    toast(`${seeded} to begin with. Happy birthday.`, 5200);
+  }
   maybeCoach();
 
   if (new URLSearchParams(location.search).has('summon')) {
