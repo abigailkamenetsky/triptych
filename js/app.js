@@ -778,6 +778,7 @@ function wire() {
   const summon = new Summon($('#summonBody'), {
     onPickFile: () => pickFile(),
     toast,
+    isActive: () => state.view === 'summon',
     stepper: (n) => {
       for (const li of $$('#stepper li')) {
         const s = Number(li.dataset.step);

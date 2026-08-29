@@ -15,6 +15,7 @@ Output is full colour RGBA to assets/demons/, meant to float on the page.
 
 import os, sys
 import numpy as np
+import cv2
 from PIL import Image, ImageFilter, ImageDraw
 from scipy import ndimage
 
@@ -31,18 +32,26 @@ EXPORT = 700
 # demons in tones close to the ground they stand on, so the usable window is
 # narrow and different for every one of them.
 FIGURES = {
-    # The messenger: funnel hat, red cloak, a letter in his beak, on skates.
-    'messenger':  ('anthony-full', (0.1575, 0.8090, 0.2065, 0.9600), 20, 1.5),
+    # ── The Temptation of Saint Anthony ──
+    # Funnel hat, red cloak, a letter in his beak, on skates.
+    'messenger':  ('anthony-full', (0.1560, 0.8060, 0.2080, 0.9620), 2.6, 0.10),
     # Red hooded figure carried on a wheeled frame.
-    'wheelman':   ('anthony-full', (0.9120, 0.5180, 0.9620, 0.6330), 20, 1.5, True),
-    # The Prince of Hell, from the Garden. Blue bird head on his throne.
-    'prince':     ('src-princeOfHell', (0.360, 0.040, 1.000, 0.980), 40, 1.6),
-    # A man riding inside a drum, also from the Garden.
-    'drummer':    ('src-manInDrum', (0.10, 0.08, 0.92, 0.94), 48, 1.6),
+    'wheelman':   ('anthony-full', (0.9110, 0.5160, 0.9630, 0.6350), 2.6, 0.10),
+    # White faced reader with the red collar, under the bridge.
+    'reader':     ('anthony-full', (0.0855, 0.8000, 0.1180, 0.8560), 2.4, 0.09),
+
+    # ── The Garden of Earthly Delights ──
+    'prince':     ('src-princeOfHell', (0.340, 0.020, 1.000, 0.995), 2.8, 0.07),
+    'drummer':    ('src-manInDrum', (0.08, 0.06, 0.94, 0.96), 2.6, 0.09),
+    'camel':      ('src-camel', (0.24, 0.08, 0.90, 0.96), 2.6, 0.09),
+    'porcupine':  ('src-porcupine', (0.02, 0.02, 0.78, 0.98), 2.6, 0.09),
+    'strawberry': ('src-strawberry', (0.24, 0.02, 0.82, 0.76), 2.6, 0.09),
+    'skater':     ('src-skatingMonster', (0.14, 0.04, 0.92, 0.96), 2.6, 0.09),
+    'rabbit':     ('src-rabbit', (0.44, 0.04, 0.96, 0.86), 2.6, 0.12),
 }
 
 # Already cut cleanly for the shelf, and reused here rather than cut twice.
-FROM_BEASTS = ['camel', 'porcupine', 'strawberry']
+FROM_BEASTS = []
 
 
 def load(name):
@@ -62,96 +71,93 @@ def fit(im, longest):
     return im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
 
 
-def cut_alpha(im, tol, trim_edges=False):
-    """Background is whatever both resembles the frame edge and reaches it."""
-    a = np.asarray(im, dtype=np.int16)
-    H, W = a.shape[:2]
+def grabcut_alpha(im, inset=0.06, iters=7, seed_box=None):
+    """A matte from GrabCut.
 
-    border = np.concatenate([a[0, :], a[-1, :], a[:, 0], a[:, -1]]).reshape(-1, 3)
-    samples = border[::max(1, len(border) // 1200)]
+    GrabCut models foreground and background as colour mixtures and finds the
+    cut between them, which is the right instrument for a painted figure whose
+    tones overlap the ground it stands on. Hand-tuned thresholds are not.
+    """
+    img = cv2.cvtColor(np.asarray(im), cv2.COLOR_RGB2BGR)
+    h, w = img.shape[:2]
 
-    centres = []
-    for c in samples:
-        if all(np.linalg.norm(c - k) > tol * 1.25 for k in centres):
-            centres.append(c)
-        if len(centres) >= 9:
-            break
-    if not centres:
-        centres = [samples.mean(axis=0)]
-
-    flat = a.reshape(-1, 3)
-    near = np.zeros(flat.shape[0], dtype=bool)
-    for c in centres:
-        near |= (np.linalg.norm(flat - c, axis=1) < tol)
-    near = near.reshape(H, W)
-
-    lab, n = ndimage.label(near)
-    if n:
-        edge = set(lab[0, :]) | set(lab[-1, :]) | set(lab[:, 0]) | set(lab[:, -1])
-        edge.discard(0)
-        bg = np.isin(lab, list(edge)) if edge else np.zeros_like(near)
+    mask = np.zeros((h, w), np.uint8)
+    if seed_box:
+        l, t, r, b = seed_box
+        rect = (int(l * w), int(t * h), int((r - l) * w), int((b - t) * h))
     else:
-        bg = np.zeros_like(near)
+        m = int(min(h, w) * inset)
+        rect = (m, m, w - 2 * m, h - 2 * m)
 
-    fg = ~bg
-    fg = ndimage.binary_closing(fg, np.ones((7, 7)))
-    fg = ndimage.binary_fill_holes(fg)
-    fg = ndimage.binary_opening(fg, np.ones((3, 3)))
+    bgd = np.zeros((1, 65), np.float64)
+    fgd = np.zeros((1, 65), np.float64)
+    cv2.grabCut(img, mask, rect, bgd, fgd, iters, cv2.GC_INIT_WITH_RECT)
 
+    fg = np.isin(mask, [cv2.GC_FGD, cv2.GC_PR_FGD])
+
+    # One figure, holes filled.
     lab, n = ndimage.label(fg)
-    if n:
+    if n > 1:
         sizes = ndimage.sum(fg, lab, range(1, n + 1))
-        biggest = sizes.max()
-        if trim_edges:
-            # The crop is generous, so the figure never reaches the frame.
-            # Anything that does is ground the tolerance failed to catch.
-            touching = set(lab[0, :]) | set(lab[-1, :]) | set(lab[:, 0]) | set(lab[:, -1])
-            touching.discard(0)
-            keep = [i + 1 for i, sz in enumerate(sizes)
-                    if sz > 0.10 * biggest and (i + 1) not in touching]
-            if not keep:
-                keep = [int(np.argmax(sizes)) + 1]
-        else:
-            keep = [i + 1 for i, sz in enumerate(sizes) if sz > 0.10 * biggest]
+        biggest = int(np.argmax(sizes)) + 1
+        # Keep smaller pieces only if they are substantial: a beak, a skate,
+        # a trailing tail are all disconnected at this resolution.
+        keep = [i + 1 for i, sz in enumerate(sizes) if sz > 0.06 * sizes.max()]
+        if biggest not in keep:
+            keep.append(biggest)
         fg = np.isin(lab, keep)
+    fg = ndimage.binary_fill_holes(fg)
 
-    return Image.fromarray((fg * 255).astype(np.uint8))
+    return fg
+
+
+def decontaminate(rgb, alpha, reach=8.0):
+    """Push edge pixels toward the colour just inside them.
+
+    A half-transparent edge pixel is a mix of the figure and whatever it stood
+    on, which is what leaves a coloured lip around a cutout. Extending the
+    interior colour outward and blending it across the soft band removes the lip
+    without touching the figure.
+    """
+    a = np.asarray(alpha, dtype=np.float32) / 255.0
+    img = np.asarray(rgb, dtype=np.float32)
+
+    core = (a > 0.90).astype(np.float32)[..., None]
+    num = ndimage.gaussian_filter(img * core, (reach, reach, 0))
+    den = ndimage.gaussian_filter(core, (reach, reach, 0)) + 1e-5
+    inside = num / den
+
+    band = (np.clip((0.95 - a) / 0.95, 0, 1) * (a > 0.02))[..., None]
+    out = img * (1 - band) + inside * band
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), 'RGB')
 
 
 def cut(name, spec):
-    plate, box, tol, feather = spec[:4]
-    trim = spec[4] if len(spec) > 4 else False
-    vig = spec[5] if len(spec) > 5 else 0.0
+    plate, box, feather = spec[0], spec[1], spec[2]
+    inset = spec[3] if len(spec) > 3 else 0.06
+    seed_box = spec[4] if len(spec) > 4 else None
+
     im = fit(crop_frac(load(plate), box), WORK)
+    fg = grabcut_alpha(im, inset, 7, seed_box)
 
-    alpha = cut_alpha(im, tol, trim)
+    # Round the staircase off the boundary, then feather so it sits in the page.
+    soft = ndimage.gaussian_filter(fg.astype(np.float32), 2.0)
+    fg = soft > 0.5
+    alpha = Image.fromarray((fg * 255).astype(np.uint8), 'L')
     alpha = alpha.filter(ImageFilter.GaussianBlur(feather))
-    # Pull the edge in a touch, so no rim of background survives.
-    alpha = alpha.point(lambda v: 0 if v < 132 else min(255, int((v - 132) * 2.6)))
-    alpha = alpha.filter(ImageFilter.GaussianBlur(feather * 0.6))
 
-    # Safety net. Where the segmenter fuses a figure to its ground, a generous
-    # feathered ellipse dissolves the corners it left behind. Figures that cut
-    # cleanly are already well inside it and are untouched.
-    if vig:
-        w, h = im.size
-        m = Image.new('L', (w, h), 0)
-        ImageDraw.Draw(m).ellipse((w * vig, h * vig, w * (1 - vig), h * (1 - vig)), fill=255)
-        m = m.filter(ImageFilter.GaussianBlur(min(w, h) * 0.10))
-        alpha = Image.fromarray(
-            (np.asarray(alpha, dtype=np.float32) * np.asarray(m, dtype=np.float32) / 255.0
-             ).clip(0, 255).astype(np.uint8))
-
-    out = im.convert('RGBA')
+    rgb = decontaminate(im, alpha)
+    out = rgb.convert('RGBA')
     out.putalpha(alpha)
-    bbox = out.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+
+    bbox = out.getchannel('A').point(lambda v: 255 if v > 10 else 0).getbbox()
     if bbox:
         out = out.crop(bbox)
     out = fit(out, EXPORT)
 
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, f'{name}.webp')
-    out.save(path, 'WEBP', quality=88, method=4)
+    out.save(path, 'WEBP', quality=90, method=4)
     return out, os.path.getsize(path)
 
 
