@@ -5,7 +5,7 @@
  * never has to drag megabytes into memory.
  */
 
-const NAME = 'delights';
+const NAME = 'triptych';
 const VERSION = 1;
 
 let dbp = null;

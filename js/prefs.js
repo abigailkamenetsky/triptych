@@ -3,7 +3,7 @@
  * Small reactive settings store backed by localStorage.
  */
 
-const KEY = 'delights.prefs.v1';
+const KEY = 'triptych.prefs.v1';
 
 export const DEFAULTS = {
   theme: 'garden',

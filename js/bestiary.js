@@ -2,7 +2,7 @@
  * bestiary.js
  *
  * The creatures are not drawn. They are lifted straight out of Hieronymus
- * Bosch, The Garden of Earthly Delights (c. 1490 to 1510), which is public
+ * Bosch, The Garden of Earthly Triptych (c. 1490 to 1510), which is public
  * domain. art/cut.py does the lifting and writes assets/beasts/.
  *
  * Most arrive as feathered roundels, the way a manuscript would set a figure.

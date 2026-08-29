@@ -38,7 +38,7 @@ const SOURCES = {
       'Tap any link that says <b>Slow Partner Server</b>. Those are the free ones. There are usually three or four.',
       'A countdown appears, sometimes up to a minute. That is normal. Leave it alone and let it finish, then tap the download link it gives you.',
       'Safari asks what to do. Tap <b>Download</b>.',
-      'Come straight back here. Delights will be waiting with the file picker open.',
+      'Come straight back here. Triptych will be waiting with the file picker open.',
     ],
     mirrorsNote: 'Anna’s Archive moves address now and then. If the page will not load, try one of these instead.',
   },
@@ -79,13 +79,13 @@ const SOURCES = {
     lede: 'Use this to find the exact title, author and year, then hunt for that.',
     steps: [
       'Tap the book to see every edition and its year.',
-      'If the button says <b>Borrow</b>, that copy is locked and cannot come to Delights. Note the exact title and author instead.',
+      'If the button says <b>Borrow</b>, that copy is locked and cannot come to Triptych. Note the exact title and author instead.',
       'If it offers a plain <b>EPUB</b>, take it and come back.',
     ],
   },
 };
 
-const LAST_KEY = 'delights.lastHunt';
+const LAST_KEY = 'triptych.lastHunt';
 
 export class Summon {
   constructor(root, ctx) {

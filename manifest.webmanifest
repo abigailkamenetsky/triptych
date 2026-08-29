@@ -1,6 +1,6 @@
 {
-  "name": "Delights",
-  "short_name": "Delights",
+  "name": "Triptych",
+  "short_name": "Triptych",
   "description": "A private library that reads like a Bosch painting.",
   "start_url": "./",
   "scope": "./",

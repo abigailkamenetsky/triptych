@@ -7,7 +7,7 @@
 import { prefs, FONTS } from './prefs.js';
 import * as db from './db.js';
 
-const STYLE_ID = '__delights_style';
+const STYLE_ID = '__triptych_style';
 const CAP_CLASS = 'dl-first';
 
 let fontFaceCss = '';

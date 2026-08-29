@@ -1,4 +1,4 @@
-# Delights
+# Triptych
 
 Birthday gift for Abby's mother, 2026-09-01. An installable PWA ebook reader
 styled after Hieronymus Bosch, with a guided flow for acquiring EPUBs.

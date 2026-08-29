@@ -1,4 +1,4 @@
-# Delights
+# Triptych
 
 A private ebook library that reads like a Hieronymus Bosch panel.
 
@@ -86,7 +86,7 @@ Any static host works. Two rules matter:
    app to a different domain leaves the library behind on the old one.
 
 Everything is referenced with relative paths, so it runs from a subpath such as
-`user.github.io/delights/` as happily as from a domain root.
+`user.github.io/triptych/` as happily as from a domain root.
 
 ## Installing on iPhone or iPad
 

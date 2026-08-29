@@ -265,8 +265,8 @@ async function importFiles(files, opts = {}) {
 /* A shelf should never be empty on the first morning. The titles are listed in
    seed/seeds.json, which `node tools/seeds.mjs <url>...` rewrites for you. */
 async function seedFirstRun() {
-  if (localStorage.getItem('delights.seeded') === '1') return;
-  if ((await db.listBooks()).length) { localStorage.setItem('delights.seeded', '1'); return; }
+  if (localStorage.getItem('triptych.seeded') === '1') return;
+  if ((await db.listBooks()).length) { localStorage.setItem('triptych.seeded', '1'); return; }
 
   let names = [];
   try {
@@ -285,15 +285,15 @@ async function seedFirstRun() {
   if (!files.length) return;
 
   const n = await importFiles(files, { quiet: true });
-  localStorage.setItem('delights.seeded', '1');
+  localStorage.setItem('triptych.seeded', '1');
   return n;
 }
 
 /* ══════════════ The frontispiece ══════════════ */
 function showDedication() {
-  if (localStorage.getItem('delights.dedicated') === '1') return Promise.resolve();
+  if (localStorage.getItem('triptych.dedicated') === '1') return Promise.resolve();
   const d = DEDICATION;
-  if (!d?.lines?.length) { localStorage.setItem('delights.dedicated', '1'); return Promise.resolve(); }
+  if (!d?.lines?.length) { localStorage.setItem('triptych.dedicated', '1'); return Promise.resolve(); }
 
   $('#dedHeading').textContent = d.heading || '';
   $('#dedBody').innerHTML = d.lines.map((l) => `<p>${escapeHtml(l)}</p>`).join('');
@@ -308,7 +308,7 @@ function showDedication() {
 
   return new Promise((resolve) => {
     enter.addEventListener('click', () => {
-      localStorage.setItem('delights.dedicated', '1');
+      localStorage.setItem('triptych.dedicated', '1');
       card.style.transition = 'opacity 520ms var(--ease)';
       card.style.opacity = '0';
       setTimeout(() => { card.hidden = true; card.style.cssText = ''; resolve(); }, 520);
@@ -645,7 +645,7 @@ async function buildWorkshop() {
     ${standalone ? '' : `
     <p class="group-title">Living on the home screen</p>
     <div class="row">
-      <span class="row-label"><b>Delights is running in the browser</b><small>Add it to your home screen and it opens like a real app, with no address bar.</small></span>
+      <span class="row-label"><b>Triptych is running in the browser</b><small>Add it to your home screen and it opens like a real app, with no address bar.</small></span>
       <button class="btn btn-ghost" id="showCoach">Show me</button>
     </div>`}
 
@@ -693,14 +693,14 @@ async function makeBackup() {
       if (s) manifest.state.push(s);
       manifest.marks.push(...(await db.listMarks(b.id)));
     }
-    zip.file('delights.json', JSON.stringify(manifest));
+    zip.file('triptych.json', JSON.stringify(manifest));
 
     const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
     const stamp = new Date().toISOString().slice(0, 10);
-    const file = new File([blob], `delights-backup-${stamp}.zip`, { type: 'application/zip' });
+    const file = new File([blob], `triptych-backup-${stamp}.zip`, { type: 'application/zip' });
 
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Delights backup' });
+      await navigator.share({ files: [file], title: 'Triptych backup' });
       toast('Saved.');
     } else {
       const url = URL.createObjectURL(blob);
@@ -720,8 +720,8 @@ async function restoreBackup(file) {
   toast('Unpacking the backup…', 14000);
   try {
     const zip = await window.JSZip.loadAsync(file);
-    const mf = zip.file('delights.json');
-    if (!mf) { toast('That zip is not a Delights backup.'); return; }
+    const mf = zip.file('triptych.json');
+    if (!mf) { toast('That zip is not a Triptych backup.'); return; }
     const manifest = JSON.parse(await mf.async('string'));
 
     const existing = await db.listBooks();
@@ -766,7 +766,7 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 function maybeCoach() {
   if (isStandalone()) return;
   if (!isIOS()) return;
-  if (localStorage.getItem('delights.coached') === '1') return;
+  if (localStorage.getItem('triptych.coached') === '1') return;
   // Only ever in front of the shelf. It must never land on top of a book.
   setTimeout(() => {
     if (state.view === 'library' && $('#scrim').hidden) $('#installCoach').hidden = false;
@@ -901,7 +901,7 @@ function wire() {
   // Install coach
   $('#dismissCoach').addEventListener('click', () => {
     $('#installCoach').hidden = true;
-    localStorage.setItem('delights.coached', '1');
+    localStorage.setItem('triptych.coached', '1');
   });
 
   // Leaving edit mode
@@ -948,9 +948,9 @@ async function boot() {
   await db.requestPersistence().catch(() => {});
 
   // The books arrive behind the card, so the shelf is ready when she taps through.
-  const firstRun = localStorage.getItem('delights.seeded') !== '1';
+  const firstRun = localStorage.getItem('triptych.seeded') !== '1';
   const seeding = seedFirstRun();
-  const dedicated = localStorage.getItem('delights.dedicated') === '1';
+  const dedicated = localStorage.getItem('triptych.dedicated') === '1';
   await showDedication();
   const seeded = await seeding;
   if (firstRun && seeded && dedicated) {
