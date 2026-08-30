@@ -24,11 +24,11 @@ OUT = os.path.join(ROOT, 'assets', 'edge')
 # name: (plate, crop l/t/r/b as fractions, output w/h, fade direction, fade span)
 STRIPS = {
     # Tall edges, from the Hell panel, which is naturally 1:2.4 and packed.
-    'left':   ('hell-panel',  (0.015, 0.06, 0.235, 1.00), (340, 3400), 'right',  0.34),
-    'right':  ('hell-panel',  (0.765, 0.06, 0.985, 1.00), (340, 3400), 'left',   0.34),
+    'left':   ('hell-panel',  (0.090, 0.10, 0.330, 0.97), (360, 3400), 'right',  0.26),
+    'right':  ('hell-panel',  (0.640, 0.10, 0.880, 0.97), (360, 3400), 'left',   0.26),
     # Wide edges, from the procession and the crowd in the centre panel.
-    'top':    ('garden-full', (0.268, 0.345, 0.772, 0.545), (3200, 340), 'down',  0.38),
-    'bottom': ('garden-full', (0.268, 0.755, 0.772, 0.972), (3200, 340), 'up',    0.38),
+    'top':    ('garden-full', (0.268, 0.360, 0.732, 0.530), (3200, 320), 'down',  0.30),
+    'bottom': ('garden-full', (0.268, 0.770, 0.732, 0.958), (3200, 320), 'up',    0.30),
     # The iPad rail is a whole column of Hell, opaque all the way across.
     'rail':   ('hell-panel',  (0.10, 0.02, 0.62, 1.00), (620, 3400), None, 0),
 }

@@ -1972,3 +1972,97 @@
     letter-spacing: .03em;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   THE READER FRAME.
+   The painted border sits at z-index 1 and every view at 2. In the library
+   that works, because the view has no background of its own and the paint
+   shows through. The reader paints a board, which meant the border was
+   covered and the margins had nothing in them but floating figures on a bare
+   field. Raise it over the board while reading.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  :root[data-view="reader"] .frame { z-index: 3; }
+
+  /* The page is a sheet laid on the board, so give its edge a gilt line. */
+  .viewer-wrap {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--gold) 52%, transparent),
+      0 0 0 2px color-mix(in oklab, var(--page-fg) 14%, transparent),
+      0 3px 8px rgb(28 16 6 / .28),
+      0 16px 44px rgb(28 16 6 / .24);
+  }
+
+  @media (width >= 760px) {
+    /* Tighter, so the figures sit against the paint rather than adrift in it. */
+    .marginalia { width: clamp(54px, 6.2vw, 84px); }
+    .marginalia-l { inset-inline-start: calc(var(--frame-w) * .78); }
+    .marginalia-r { inset-inline-end: calc(var(--frame-w) * .78); }
+    :root[data-marginalia="on"] { --gutter: calc(var(--frame-w) * .78 + clamp(56px, 6.6vw, 90px)); }
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   No more circles. A figure cut out of a painting and then punched
+   through a round hole reads as a sticker; leave the silhouette alone.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  .rail-beast {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    background: none;
+  }
+  .rail-beast .demon,
+  .rail-beast .beast {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / .65));
+  }
+  .rail-foot span { width: 84px; }
+  .rail-foot .demon { filter: drop-shadow(0 2px 6px rgb(0 0 0 / .6)); }
+
+  /* The frieze is gone, so the tools sit directly under the painted band. */
+  @media (width >= 760px) {
+    .shelf-tools { padding-block: calc(var(--frame-h) + 18px) 4px; }
+  }
+  @media (width < 760px) {
+    .shelf-tools { padding-block: 16px 4px; }
+  }
+
+  /* The reader chrome now sits over painted border, so it needs to hold its
+     own ground rather than let the painting through behind the type. */
+  .chrome {
+    background: color-mix(in oklab, var(--bg-raised) 94%, transparent);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  }
+  .chrome-top { box-shadow: 0 1px 0 color-mix(in oklab, var(--gold) 34%, transparent); }
+  .chrome-bottom { box-shadow: 0 -1px 0 color-mix(in oklab, var(--gold) 28%, transparent); }
+}
+
+
+@layer wide {
+  /* The Tree Man watermark sat behind the shelf at low opacity and read as a
+     pale wash down the right hand side. The frame and the rail carry the art
+     now, so it has nothing left to do. */
+  .watermark { display: none; }
+}
+
+
+@layer wide {
+  /* The four bands were all full length, so the tall strips covered the ends of
+     the wide ones and the corners showed whatever happened to be at the top of
+     the Hell panel crop, which is smoke. Let the horizontal bands own the
+     corners and run the vertical ones between them. */
+  .frame-left,
+  .frame-right { inset-block: var(--frame-h) var(--frame-h); }
+}
