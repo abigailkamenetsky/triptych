@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = 'cbe59b510469';
+const VERSION = '6da5cbc1c370';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -33,18 +33,22 @@ const PRECACHE = [
   'assets/edge/right.webp',
   'assets/edge/top.webp',
   'assets/frames/index.json',
+  'assets/frames/landscape-1-page.webp',
   'assets/frames/landscape-1.webp',
+  'assets/frames/landscape-2-page.webp',
   'assets/frames/landscape-2.webp',
+  'assets/frames/landscape-3-page.webp',
   'assets/frames/landscape-3.webp',
+  'assets/frames/landscape-4-page.webp',
   'assets/frames/landscape-4.webp',
-  'assets/frames/landscape-5.webp',
-  'assets/frames/landscape-6.webp',
+  'assets/frames/portrait-1-page.webp',
   'assets/frames/portrait-1.webp',
+  'assets/frames/portrait-2-page.webp',
   'assets/frames/portrait-2.webp',
+  'assets/frames/portrait-3-page.webp',
   'assets/frames/portrait-3.webp',
+  'assets/frames/portrait-4-page.webp',
   'assets/frames/portrait-4.webp',
-  'assets/frames/portrait-5.webp',
-  'assets/frames/portrait-6.webp',
   'assets/ground/page-dark.webp',
   'assets/ground/page-hell.webp',
   'assets/ground/page-light.webp',
@@ -87,6 +91,7 @@ const PRECACHE = [
   'js/reader.js',
   'js/summon.js',
   'manifest.webmanifest',
+  'tools/seed.mjs',
   'vendor/epub.min.js',
   'vendor/jszip.min.js',
 ];

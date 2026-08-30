@@ -2,53 +2,45 @@
  "landscape": [
   {
    "src": "landscape-1.webp",
-   "centre": "#d1c4a4"
+   "page": "landscape-1-page.webp",
+   "centre": "#e6d4aa"
   },
   {
    "src": "landscape-2.webp",
-   "centre": "#d1c4a4"
+   "page": "landscape-2-page.webp",
+   "centre": "#e1ce9f"
   },
   {
    "src": "landscape-3.webp",
-   "centre": "#d2c5a5"
+   "page": "landscape-3-page.webp",
+   "centre": "#e3d0a6"
   },
   {
    "src": "landscape-4.webp",
-   "centre": "#d1c4a4"
-  },
-  {
-   "src": "landscape-5.webp",
-   "centre": "#d2c5a5"
-  },
-  {
-   "src": "landscape-6.webp",
-   "centre": "#d2c5a5"
+   "page": "landscape-4-page.webp",
+   "centre": "#e1cc9c"
   }
  ],
  "portrait": [
   {
    "src": "portrait-1.webp",
-   "centre": "#d1c4a4"
+   "page": "portrait-1-page.webp",
+   "centre": "#ebd9ac"
   },
   {
    "src": "portrait-2.webp",
-   "centre": "#d2c5a5"
+   "page": "portrait-2-page.webp",
+   "centre": "#e7d5a8"
   },
   {
    "src": "portrait-3.webp",
-   "centre": "#d2c5a5"
+   "page": "portrait-3-page.webp",
+   "centre": "#e5d3aa"
   },
   {
    "src": "portrait-4.webp",
-   "centre": "#d1c4a4"
-  },
-  {
-   "src": "portrait-5.webp",
-   "centre": "#d1c4a4"
-  },
-  {
-   "src": "portrait-6.webp",
-   "centre": "#d1c4a4"
+   "page": "portrait-4-page.webp",
+   "centre": "#e6d2a6"
   }
  ],
  "inset": {
@@ -60,6 +52,10 @@
    "x": 0.2,
    "y": 0.2
   }
+ },
+ "pageBox": {
+  "x": 0.13,
+  "y": 0.1
  },
  "synthetic": false
 }

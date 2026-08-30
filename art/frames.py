@@ -34,6 +34,12 @@ SHAPES = {'landscape': (1800, 1350), 'portrait': (1350, 1800)}
 # off the supplied art; the reader insets its text by this much.
 INSET = {'landscape': {'x': 0.20, 'y': 0.20}, 'portrait': {'x': 0.20, 'y': 0.20}}
 
+# Where the reader's page sits on the plate. The page background is cut from
+# exactly this box, so the paper under the text is the plate's own paper and
+# the two meet with no rectangle between them. Must match --page-inset-* in
+# the stylesheet.
+PAGE_BOX = {'x': 0.13, 'y': 0.10}
+
 READABLE = ('.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP')
 
 
@@ -100,7 +106,15 @@ def write(im, shape, n):
     name = f'{shape}-{n}.webp'
     path = os.path.join(OUT, name)
     im.save(path, 'WEBP', quality=82, method=4)
-    return name, os.path.getsize(path)
+
+    # The paper the text will sit on, taken straight out of the plate.
+    W, H = im.size
+    page = im.crop((int(W * PAGE_BOX['x']), int(H * PAGE_BOX['y']),
+                    int(W * (1 - PAGE_BOX['x'])), int(H * (1 - PAGE_BOX['y']))))
+    page_name = f'{shape}-{n}-page.webp'
+    page.save(os.path.join(OUT, page_name), 'WEBP', quality=84, method=4)
+
+    return name, os.path.getsize(path), page_name
 
 
 if __name__ == '__main__':
@@ -108,7 +122,7 @@ if __name__ == '__main__':
         os.remove(f)
 
     files, source = supplied()
-    index = {'landscape': [], 'portrait': [], 'inset': INSET, 'synthetic': not files}
+    index = {'landscape': [], 'portrait': [], 'inset': INSET, 'pageBox': PAGE_BOX, 'synthetic': not files}
     total = 0
 
     if files:
@@ -118,8 +132,8 @@ if __name__ == '__main__':
             shape = 'landscape' if im.width >= im.height else 'portrait'
             counts[shape] += 1
             out = fit_cover(im, SHAPES[shape])
-            name, sz = write(out, shape, counts[shape])
-            index[shape].append({'src': name, 'centre': centre_colour(out, shape)})
+            name, sz, page = write(out, shape, counts[shape])
+            index[shape].append({'src': name, 'page': page, 'centre': centre_colour(out, shape)})
             total += sz
             print(f'  {os.path.basename(f):38} -> {name:16} {out.width}x{out.height} '
                   f'{sz/1024:6.0f} KB  centre {index[shape][-1]["centre"]}')
@@ -129,16 +143,16 @@ if __name__ == '__main__':
                 other = 'portrait' if shape == 'landscape' else 'landscape'
                 src = Image.open(os.path.join(OUT, index[other][0]['src'])).convert('RGB')
                 out = fit_cover(src, SHAPES[shape])
-                name, sz = write(out, shape, 1)
-                index[shape].append({'src': name, 'centre': centre_colour(out, shape)})
+                name, sz, page = write(out, shape, 1)
+                index[shape].append({'src': name, 'page': page, 'centre': centre_colour(out, shape)})
                 total += sz
                 print(f'  (borrowed for {shape}) -> {name}')
     else:
         print('  nothing in art/supplied/ or art/generated/, using stand-ins')
         for shape in SHAPES:
             im = synth(shape)
-            name, sz = write(im, shape, 1)
-            index[shape].append({'src': name, 'centre': centre_colour(im, shape)})
+            name, sz, page = write(im, shape, 1)
+            index[shape].append({'src': name, 'page': page, 'centre': centre_colour(im, shape)})
             total += sz
             print(f'  synthetic {shape:10} -> {name} {sz/1024:6.0f} KB')
 

@@ -2560,3 +2560,50 @@
   /* Three tabs need a touch less room each. */
   #sheetToc .segmented button { padding-inline: 13px; font-size: 14px; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   SUPPLIED PLATES.
+   The composed plates kept every figure inside a corner, so nine-slice
+   worked. The hand-made art puts figures along the edges too, and
+   border-image tiles the edge slice, which would repeat the bird-headed
+   reader down the whole left margin. A stretched plate frames the screen
+   exactly at any shape, and vine ornament carries a little stretch far
+   better than a border that is cropped away or repeated.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  :root[data-frame="on"] .plate {
+    border: 0;
+    border-image: none;
+    background-image: var(--reading-frame);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  /* The ornament is dense to about a fifth of the way in and clear after
+     that. The text sits a little inside that line, because a full fifth on
+     each side of a phone leaves a measure too narrow to read. */
+  :root[data-frame="on"] .viewer-wrap {
+    inset: calc(var(--page-inset-y) + var(--sat-top))
+           calc(var(--page-inset-x) + var(--sat-r))
+           calc(var(--page-inset-y) + var(--sat-bot))
+           calc(var(--page-inset-x) + var(--sat-l));
+    box-shadow: none;
+  }
+  /* Must match PAGE_BOX in art/frames.py, or the paper will not line up. */
+  :root { --page-inset-x: 13%; --page-inset-y: 10%; }
+}
+
+
+@layer wide {
+  /* The page is a sheet laid on the plate. Give it a soft edge and a shadow so
+     it reads as a sheet rather than as a rectangle that failed to blend. */
+  :root[data-frame="on"] .viewer-wrap {
+    border-radius: 3px;
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, #6b5a34 26%, transparent),
+      0 2px 5px rgb(60 42 18 / .18),
+      0 12px 30px rgb(60 42 18 / .16);
+  }
+}

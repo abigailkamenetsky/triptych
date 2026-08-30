@@ -78,10 +78,15 @@ export const HIGHLIGHT_FILL = {
   rose: '#a8341f',
 };
 
-/* When a border plate is in use the page is painted the tone sampled from the
-   middle of that plate, flat, so the two meet without a seam. */
+/* When a border plate is in use the page shows the plate's own paper, cut from
+   exactly the box the page occupies. A flat colour cannot match a plate that
+   is unevenly lit, and any difference shows as a rectangle around the text. */
 let pageTone = null;
-export function setPageTone(hex) { pageTone = hex || null; }
+let pagePlate = null;
+export function setPageTone(hex, plateUrl) {
+  pageTone = hex || null;
+  pagePlate = plateUrl || null;
+}
 
 /* Reading grounds, painted inside the book document so the page and its
    texture always move together and never show a seam against the shell. */
@@ -110,10 +115,16 @@ function pageCss() {
   return `
 ${fontFaceCss}
 html { -webkit-text-size-adjust: none; text-size-adjust: none; }
-html { background: ${pageTone || t.bg} !important; }
-body {
+html {
   background-color: ${pageTone || t.bg} !important;
-  ${ground}
+  ${pagePlate ? `background-image: url("${pagePlate}") !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;` : ''}
+}
+body {
+  background-color: ${pagePlate ? 'transparent' : (pageTone || t.bg)} !important;
+  ${pagePlate ? '' : ground}
   color: ${t.fg} !important;
   ${family}
   font-size: ${prefs.fontScale}% !important;
