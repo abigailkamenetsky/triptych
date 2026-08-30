@@ -139,7 +139,7 @@
     <li><button class="rail-item" data-rail="home" aria-current="page">
       <span class="rail-beast" data-demon="drummer"></span><span>Reading now</span></button></li>
     <li><button class="rail-item" data-rail="library">
-      <span class="rail-beast" data-demon="reader"></span><span>Library</span></button></li>
+      <span class="rail-beast" data-demon="rabbit"></span><span>Library</span></button></li>
     <li><button class="rail-item" data-rail="summon">
       <span class="rail-beast" data-demon="messenger"></span><span>Summon a book</span></button></li>
     <li><button class="rail-item" data-rail="workshop">
@@ -147,6 +147,20 @@
   </ul>
   <div class="rail-foot" aria-hidden="true"><span data-demon="wheelman"></span></div>
 </nav>
+
+<!-- ═══════════════════ BOOK DETAIL ═══════════════════ -->
+<section class="view" id="viewBook" data-view="book" hidden>
+  <header class="topbar">
+    <div class="topbar-row">
+      <button class="glyph" data-action="leave-book" aria-label="Back">
+        <svg class="ico" aria-hidden="true"><use href="#i-back"/></svg>
+      </button>
+      <h1 class="wordmark wordmark-sm" id="bookViewTitle">Book</h1>
+      <div class="topbar-actions"><span class="glyph-spacer"></span></div>
+    </div>
+  </header>
+  <div class="scroller"><div id="bookBody"></div></div>
+</section>
 
 <!-- ═══════════════════ READING NOW ═══════════════════ -->
 <section class="view" id="viewHome" data-view="home" hidden>
@@ -213,7 +227,7 @@
       <span class="fiend" data-demon="messenger"></span>
       <span class="fiend" data-demon="prince"></span>
       <span class="fiend" data-demon="porcupine"></span>
-      <span class="fiend" data-demon="reader"></span>
+      <span class="fiend" data-demon="goldfinch"></span>
     </div>
     <div class="marginalia marginalia-r" aria-hidden="true">
       <span class="fiend" data-demon="skater"></span>
@@ -311,7 +325,8 @@
   <div class="sheet-head">
     <div class="segmented" role="tablist" aria-label="Contents or bookmarks">
       <button role="tab" aria-selected="true" data-tab="toc">Contents</button>
-      <button role="tab" aria-selected="false" data-tab="marks">Bookmarks</button>
+      <button role="tab" aria-selected="false" data-tab="marks">Marks</button>
+      <button role="tab" aria-selected="false" data-tab="notes">Highlights</button>
     </div>
     <button class="glyph" data-close-sheet aria-label="Close">
       <svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>
@@ -319,6 +334,7 @@
   </div>
   <div class="sheet-body sheet-scroll" id="tocList" role="tabpanel"></div>
   <div class="sheet-body sheet-scroll" id="markList" role="tabpanel" hidden></div>
+  <div class="sheet-body sheet-scroll" id="noteList" role="tabpanel" hidden></div>
 </aside>
 
 <aside class="sheet sheet-tall" id="sheetSearch" hidden aria-label="Search inside book">
@@ -392,6 +408,19 @@
     <svg class="ico" aria-hidden="true"><use href="#i-more"/></svg><span>More</span>
   </button>
 </nav>
+
+<div class="hl-pop" id="hlPop" hidden role="dialog" aria-label="Highlight">
+  <div class="hl-colours" role="group" aria-label="Highlight colour">
+    <button class="hl-swatch hl-gold"  data-hl="gold"  aria-label="Gold"></button>
+    <button class="hl-swatch hl-sage"  data-hl="sage"  aria-label="Sage"></button>
+    <button class="hl-swatch hl-lapis" data-hl="lapis" aria-label="Lapis"></button>
+    <button class="hl-swatch hl-rose"  data-hl="rose"  aria-label="Vermilion"></button>
+  </div>
+  <span class="hl-sep" aria-hidden="true"></span>
+  <button class="hl-act" id="hlNote">Note</button>
+  <button class="hl-act" id="hlCopy">Copy</button>
+  <button class="hl-act hl-del" id="hlDelete" hidden>Remove</button>
+</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 

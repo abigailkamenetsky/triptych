@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '871af3d440b5';
+const VERSION = '3268a1531650';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -14,15 +14,19 @@ const PRECACHE = [
   'CLAUDE.md',
   'assets/demons/camel.webp',
   'assets/demons/drummer.webp',
+  'assets/demons/flower.webp',
+  'assets/demons/goldfinch.webp',
+  'assets/demons/iceSkater.webp',
   'assets/demons/index.json',
+  'assets/demons/lobster.webp',
   'assets/demons/messenger.webp',
   'assets/demons/porcupine.webp',
   'assets/demons/prince.webp',
   'assets/demons/rabbit.webp',
-  'assets/demons/reader.webp',
   'assets/demons/skater.webp',
   'assets/demons/strawberry.webp',
   'assets/demons/wheelman.webp',
+  'assets/demons/winged.webp',
   'assets/edge/bottom.webp',
   'assets/edge/left.webp',
   'assets/edge/rail.webp',
@@ -33,10 +37,14 @@ const PRECACHE = [
   'assets/frames/landscape-2.webp',
   'assets/frames/landscape-3.webp',
   'assets/frames/landscape-4.webp',
+  'assets/frames/landscape-5.webp',
+  'assets/frames/landscape-6.webp',
   'assets/frames/portrait-1.webp',
   'assets/frames/portrait-2.webp',
   'assets/frames/portrait-3.webp',
   'assets/frames/portrait-4.webp',
+  'assets/frames/portrait-5.webp',
+  'assets/frames/portrait-6.webp',
   'assets/ground/page-dark.webp',
   'assets/ground/page-hell.webp',
   'assets/ground/page-light.webp',

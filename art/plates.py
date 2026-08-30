@@ -40,11 +40,14 @@ BLOOM2 = (118, 132, 156)
 # repeats a creature and the weights sit diagonally opposite each other.
 # Only figures whose cutouts are genuinely clean. The reader and the porcupine
 # both keep a patch of the ground they stood on, which shows badly on vellum.
+# Fourteen figures cut cleanly, three to a plate, no repeats within a plate.
 CASTS = [
     [('messenger', 'bl'), ('wheelman', 'tr'), ('strawberry', 'tl')],
     [('skater', 'br'), ('drummer', 'tr'), ('camel', 'tl')],
-    [('prince', 'br'), ('messenger', 'bl'), ('strawberry', 'tr')],
-    [('wheelman', 'bl'), ('skater', 'br'), ('drummer', 'tr')],
+    [('prince', 'br'), ('rabbit', 'tl'), ('flower', 'tr')],
+    [('wheelman', 'bl'), ('iceSkater', 'br'), ('goldfinch', 'tr')],
+    [('porcupine', 'tl'), ('messenger', 'br'), ('lobster', 'tr')],
+    [('camel', 'bl'), ('prince', 'tr'), ('winged', 'tl')],
 ]
 
 

@@ -33,21 +33,33 @@ EXPORT = 700
 # narrow and different for every one of them.
 FIGURES = {
     # ── The Temptation of Saint Anthony ──
-    # Funnel hat, red cloak, a letter in his beak, on skates.
     'messenger':  ('anthony-full', (0.1560, 0.8060, 0.2080, 0.9620), 2.6, 0.10),
-    # Red hooded figure carried on a wheeled frame.
     'wheelman':   ('anthony-full', (0.9110, 0.5160, 0.9630, 0.6350), 2.6, 0.10),
-    # White faced reader with the red collar, under the bridge.
-    'reader':     ('anthony-full', (0.0855, 0.8000, 0.1180, 0.8560), 2.4, 0.09),
+    'reader':     ('anthony-full', (0.0840, 0.7980, 0.1200, 0.8600), 2.4, 0.12),
+    'birdegg':    ('anthony-full', (0.0230, 0.7960, 0.0760, 0.9420), 2.6, 0.12),
+    'hooded':     ('anthony-full', (0.0900, 0.5300, 0.1780, 0.7450), 2.6, 0.11),
+    'redcape':    ('anthony-full', (0.8020, 0.4450, 0.8780, 0.6300), 2.6, 0.11),
+    'tabler':     ('anthony-full', (0.7830, 0.7850, 0.8760, 0.9480), 2.6, 0.11),
+    'ratrider':   ('anthony-full', (0.5920, 0.5980, 0.6740, 0.7520), 2.6, 0.11),
+    'boatman':    ('anthony-full', (0.5280, 0.7680, 0.6140, 0.8940), 2.6, 0.11),
+    'pilgrim':    ('anthony-full', (0.4000, 0.5920, 0.4650, 0.7250), 2.6, 0.11),
+    'skyfish':    ('anthony-full', (0.0380, 0.4020, 0.1450, 0.5150), 2.6, 0.11),
 
     # ── The Garden of Earthly Delights ──
     'prince':     ('src-princeOfHell', (0.340, 0.020, 1.000, 0.995), 2.8, 0.07),
     'drummer':    ('src-manInDrum', (0.08, 0.06, 0.94, 0.96), 2.6, 0.09),
     'camel':      ('src-camel', (0.24, 0.08, 0.90, 0.96), 2.6, 0.09),
-    'porcupine':  ('src-porcupine', (0.02, 0.02, 0.78, 0.98), 2.6, 0.09),
+    'porcupine':  ('src-porcupine', (0.06, 0.06, 0.72, 0.94), 2.6, 0.13),
     'strawberry': ('src-strawberry', (0.24, 0.02, 0.82, 0.76), 2.6, 0.09),
     'skater':     ('src-skatingMonster', (0.14, 0.04, 0.92, 0.96), 2.6, 0.09),
     'rabbit':     ('src-rabbit', (0.44, 0.04, 0.96, 0.86), 2.6, 0.12),
+    'raven':      ('src-raven', (0.20, 0.00, 0.74, 0.62), 2.6, 0.10),
+    'lobster':    ('src-lobster', (0.02, 0.06, 0.86, 0.97), 2.6, 0.10),
+    'beetle':     ('src-beetle', (0.20, 0.06, 0.84, 0.97), 2.6, 0.10),
+    'goldfinch':  ('src-birdFeeding', (0.00, 0.00, 0.76, 0.84), 2.6, 0.10),
+    'iceSkater':  ('src-iceSkater', (0.24, 0.10, 0.82, 0.94), 2.6, 0.10),
+    'winged':     ('src-winged', (0.14, 0.02, 0.90, 0.98), 2.6, 0.10),
+    'flower':     ('src-largeFlower', (0.04, 0.02, 0.96, 0.88), 2.6, 0.10),
 }
 
 # Already cut cleanly for the shelf, and reused here rather than cut twice.

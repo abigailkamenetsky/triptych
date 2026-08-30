@@ -12,6 +12,7 @@ export const DEFAULTS = {
   lineHeight: 158,      // percent
   margin: 1,            // 0 narrow, 1 normal, 2 wide, 3 widest
   justify: true,
+  bold: false,
   flow: 'paginated',    // paginated | scrolled
   spread: true,         // two pages side by side when there is room
   brightness: 100,      // 100 is untouched

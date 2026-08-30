@@ -6,7 +6,7 @@
  */
 
 const NAME = 'triptych';
-const VERSION = 1;
+const VERSION = 2;
 
 let dbp = null;
 
@@ -26,6 +26,10 @@ function open() {
       if (!db.objectStoreNames.contains('marks')) {
         const m = db.createObjectStore('marks', { keyPath: 'key' });
         m.createIndex('bookId', 'bookId');
+      }
+      if (!db.objectStoreNames.contains('notes')) {
+        const n = db.createObjectStore('notes', { keyPath: 'key' });
+        n.createIndex('bookId', 'bookId');
       }
       void e;
     };
@@ -101,15 +105,16 @@ export async function touchBook(id, patch) {
 
 export async function deleteBook(id) {
   const db = await open();
-  const t = db.transaction(['books', 'blobs', 'state', 'marks'], 'readwrite');
+  const t = db.transaction(['books', 'blobs', 'state', 'marks', 'notes'], 'readwrite');
   t.objectStore('books').delete(id);
   t.objectStore('blobs').delete(id);
   t.objectStore('state').delete(id);
-  const idx = t.objectStore('marks').index('bookId');
-  idx.openCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
-    const c = e.target.result;
-    if (c) { c.delete(); c.continue(); }
-  };
+  for (const store of ['marks', 'notes']) {
+    t.objectStore(store).index('bookId').openCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
+      const c = e.target.result;
+      if (c) { c.delete(); c.continue(); }
+    };
+  }
   return new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
 }
 
@@ -161,6 +166,37 @@ export async function hasMark(bookId, cfi) {
   const db = await open();
   const r = await wait(db.transaction('marks', 'readonly').objectStore('marks').get(markKey(bookId, cfi)));
   return !!r;
+}
+
+/* ── Highlights and notes ──────────────────────────────────── */
+
+const noteKey = (bookId, cfi) => `${bookId}||${cfi}`;
+
+export async function listNotes(bookId) {
+  const db = await open();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction('notes', 'readonly');
+    const out = [];
+    const src = bookId
+      ? t.objectStore('notes').index('bookId').openCursor(IDBKeyRange.only(bookId))
+      : t.objectStore('notes').openCursor();
+    src.onsuccess = (e) => {
+      const c = e.target.result;
+      if (c) { out.push(c.value); c.continue(); }
+    };
+    t.oncomplete = () => resolve(out.sort((a, b) => (a.percent || 0) - (b.percent || 0)));
+    t.onerror = () => reject(t.error);
+  });
+}
+
+export async function saveNote(note) {
+  const rec = { created: Date.now(), ...note, key: noteKey(note.bookId, note.cfi) };
+  await tx(['notes'], 'readwrite', (s) => s.put(rec));
+  return rec;
+}
+
+export async function removeNote(bookId, cfi) {
+  await tx(['notes'], 'readwrite', (s) => s.delete(noteKey(bookId, cfi)));
 }
 
 /* ── Housekeeping ──────────────────────────────────────────── */

@@ -15,6 +15,14 @@
   {
    "src": "landscape-4.webp",
    "centre": "#d1c4a4"
+  },
+  {
+   "src": "landscape-5.webp",
+   "centre": "#d2c5a5"
+  },
+  {
+   "src": "landscape-6.webp",
+   "centre": "#d2c5a5"
   }
  ],
  "portrait": [
@@ -32,6 +40,14 @@
   },
   {
    "src": "portrait-4.webp",
+   "centre": "#d1c4a4"
+  },
+  {
+   "src": "portrait-5.webp",
+   "centre": "#d1c4a4"
+  },
+  {
+   "src": "portrait-6.webp",
    "centre": "#d1c4a4"
   }
  ],

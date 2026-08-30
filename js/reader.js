@@ -37,6 +37,13 @@ const PAGE_THEMES = {
 
 const MARGIN_EM = [1.1, 2.0, 3.2, 4.6];
 
+export const HIGHLIGHT_FILL = {
+  gold: '#c9a227',
+  sage: '#6f8355',
+  lapis: '#3a5a8c',
+  rose: '#a8341f',
+};
+
 /* When a border plate is in use the page is painted the tone sampled from the
    middle of that plate, flat, so the two meet without a seam. */
 let pageTone = null;
@@ -85,6 +92,7 @@ body {
 }
 p, li, dd, blockquote, div {
   ${family}
+  ${prefs.bold ? 'font-weight: 500 !important;' : ''}
   line-height: ${prefs.lineHeight / 100} !important;
   text-align: ${align};
   color: ${t.fg};
@@ -131,12 +139,13 @@ export class Reader {
     this.contents = new Set();
     this.handlers = {};
     this._ro = null;
+    this._highlights = [];
   }
 
   on(name, fn) { this.handlers[name] = fn; return this; }
   emit(name, ...a) { this.handlers[name]?.(...a); }
 
-  async open(record, data) {
+  async open(record, data, startAt) {
     await loadFontFaces();
     this.record = record;
     this.book = window.ePub(data);
@@ -162,7 +171,8 @@ export class Reader {
       try { this.book.locations.load(state.locations); } catch { /* regenerate below */ }
     }
 
-    await this.rendition.display(state?.cfi || undefined);
+    // A chapter picked from the book's page wins over where she left off.
+    await this.rendition.display(startAt || state?.cfi || undefined);
 
     if (!this.book.locations.length()) this._buildLocations();
     else if (!this.words) this._countWords();
@@ -230,6 +240,9 @@ export class Reader {
     this._writeStyle(doc);
     this._markFirstParagraph(doc);
     this._bindGestures(doc);
+    this._bindSelection(contents);
+    // A section that loads later still has to show its highlights.
+    for (const h of this._highlights || []) this._paint(h);
   }
 
   _writeStyle(doc) {
@@ -254,6 +267,79 @@ export class Reader {
       p.classList.add(CAP_CLASS);
       break;
     }
+  }
+
+  /* Selection. epub.js can turn a DOM range into a CFI, which is what makes a
+     highlight survive a change of font size or a different device. */
+  _bindSelection(contents) {
+    const doc = contents.document;
+    const win = contents.window || doc.defaultView;
+
+    const report = () => {
+      const sel = win.getSelection?.();
+      if (!sel || sel.isCollapsed || !String(sel).trim()) { this.emit('unselect'); return; }
+      let range;
+      try { range = sel.getRangeAt(0); } catch { return; }
+      const text = String(sel).replace(/\s+/g, ' ').trim();
+      if (text.length < 2) return;
+
+      let cfi = '';
+      try { cfi = contents.cfiFromRange(range); } catch { return; }
+      if (!cfi) return;
+
+      // The rect is in the book's coordinates; move it into the app's.
+      const r = range.getBoundingClientRect();
+      const frame = contents.content?.ownerDocument?.defaultView?.frameElement
+        || doc.defaultView?.frameElement;
+      const off = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
+      this.emit('select', {
+        cfi,
+        text,
+        rect: { left: off.left + r.left, top: off.top + r.top, width: r.width, height: r.height },
+      });
+    };
+
+    doc.addEventListener('selectionchange', () => setTimeout(report, 10));
+    doc.addEventListener('mouseup', () => setTimeout(report, 10));
+    doc.addEventListener('touchend', () => setTimeout(report, 180), { passive: true });
+  }
+
+  clearSelection() {
+    for (const c of this.contents) {
+      try { (c.window || c.document?.defaultView)?.getSelection()?.removeAllRanges(); } catch { /* gone */ }
+    }
+  }
+
+  /* ── Highlights ── */
+
+  applyHighlights(list) {
+    this._highlights = list || [];
+    if (!this.rendition) return;
+    for (const h of this._highlights) this._paint(h);
+  }
+
+  _paint(h) {
+    try {
+      this.rendition.annotations.remove(h.cfi, 'highlight');
+    } catch { /* not painted yet */ }
+    try {
+      this.rendition.annotations.add(
+        'highlight', h.cfi, {},
+        () => this.emit('highlightTap', h),
+        `dl-hl dl-hl-${h.colour || 'gold'}`,
+        { fill: HIGHLIGHT_FILL[h.colour] || HIGHLIGHT_FILL.gold, 'fill-opacity': '0.34', 'mix-blend-mode': 'multiply' },
+      );
+    } catch { /* the section is not loaded yet; it paints when it is */ }
+  }
+
+  addHighlight(h) {
+    this._highlights = [...(this._highlights || []).filter((x) => x.cfi !== h.cfi), h];
+    this._paint(h);
+  }
+
+  removeHighlight(cfi) {
+    this._highlights = (this._highlights || []).filter((x) => x.cfi !== cfi);
+    try { this.rendition.annotations.remove(cfi, 'highlight'); } catch { /* already gone */ }
   }
 
   _bindGestures(doc) {

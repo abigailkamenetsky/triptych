@@ -7,7 +7,7 @@
 import { summon as summonDemons, demonSrc, beastFor, DEMONS, PLATE_PIGMENTS } from './bestiary.js';
 import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
-import { Reader, setPageTone } from './reader.js';
+import { Reader, setPageTone, HIGHLIGHT_FILL } from './reader.js';
 import { Summon } from './summon.js';
 import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
 import { DEDICATION } from './dedication.js';
@@ -17,6 +17,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const root = document.documentElement;
 
 let goTo = () => {};
+let goBook = () => {};
 
 const state = {
   view: null,
@@ -172,7 +173,7 @@ async function renderShelf() {
   // The whole card is the tap target, and the cover button fills it.
   for (const el of $$('.book-open', shelf)) {
     el.style.cssText = 'display:block;width:100%;text-align:start';
-    el.addEventListener('click', () => { if (!state.editing) openBook(el.dataset.id); });
+    el.addEventListener('click', () => { if (!state.editing) goBook(el.dataset.id); });
     bindLongPress(el, () => setEditing(true));
   }
   for (const el of $$('[data-remove]', shelf)) {
@@ -332,6 +333,130 @@ function showDedication() {
   });
 }
 
+/* ══════════════ Book detail ══════════════ */
+const hoursOf = (words) => {
+  if (!words) return '';
+  const m = Math.round(words / READ_WPM);
+  if (m < 60) return `${m} minutes`;
+  const h = Math.floor(m / 60), r = m % 60;
+  return r < 5 ? `${h} ${h === 1 ? 'hour' : 'hours'}` : `${h}h ${r}m`;
+};
+
+/* The table of contents lives in the file, so the book has to be opened to
+   read it. It is opened, asked, and thrown away without ever being rendered.
+   Each section is also measured, because dividing the book evenly puts the
+   same estimate against every chapter, which is worse than no estimate. */
+async function tocOf(id) {
+  const data = await db.getBlob(id);
+  if (!data) return { toc: [], words: {} };
+  let book;
+  try {
+    book = window.ePub(data);
+    await book.ready;
+
+    const toc = [];
+    const walk = (items, depth) => {
+      for (const it of items || []) {
+        toc.push({ label: (it.label || '').trim() || 'Untitled', href: it.href, depth });
+        if (it.subitems?.length) walk(it.subitems, Math.min(depth + 1, 2));
+      }
+    };
+    walk(book.navigation?.toc, 0);
+
+    const words = {};
+    for (const item of book.spine.spineItems) {
+      try {
+        await item.load(book.load.bind(book));
+        const text = item.document?.body?.textContent || '';
+        words[item.href] = Math.round(text.trim().split(/\s+/).length);
+      } catch {
+        // A section that will not load simply has no estimate.
+      } finally {
+        try { item.unload(); } catch { /* already unloaded */ }
+      }
+    }
+    return { toc, words };
+  } catch {
+    return { toc: [], words: {} };
+  } finally {
+    try { book?.destroy(); } catch { /* already gone */ }
+  }
+}
+
+/* Section hrefs and TOC hrefs rarely match exactly: one carries a fragment,
+   the other a directory prefix. */
+function wordsForHref(href, table) {
+  if (!href) return 0;
+  const base = href.split('#')[0];
+  if (table[base]) return table[base];
+  for (const k of Object.keys(table)) {
+    if (k.endsWith(base) || base.endsWith(k)) return table[k];
+  }
+  return 0;
+}
+
+async function showBook(id) {
+  const b = await db.getBook(id);
+  if (!b) return;
+  state.detail = b;
+  $('#bookViewTitle').textContent = b.title;
+  const body = $('#bookBody');
+  releaseCovers();
+
+  const pct = Math.round((b.percent || 0) * 100);
+  const started = pct > 0;
+  body.innerHTML = `
+    <div class="detail">
+      <span class="detail-cover">${coverArt(b, 0)}</span>
+      <div class="detail-text">
+        <h2 class="detail-title">${escapeHtml(b.title)}</h2>
+        <p class="detail-author">${escapeHtml(b.author || 'Unknown hand')}</p>
+        <dl class="detail-facts">
+          ${b.words ? `<div><dt>Length</dt><dd>${hoursOf(b.words)}</dd></div>` : ''}
+          <div><dt>Progress</dt><dd>${started ? `${pct}% read` : 'Not started'}</dd></div>
+          <div><dt>Size</dt><dd>${db.formatBytes(b.size || 0)}</dd></div>
+          <div><dt>Added</dt><dd>${new Date(b.added).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</dd></div>
+        </dl>
+        ${started ? `<div class="detail-bar"><span style="width:${pct}%"></span></div>` : ''}
+        <div class="detail-actions">
+          <button class="btn btn-primary" data-read="${b.id}">${started ? 'Continue reading' : 'Start reading'}</button>
+          <button class="btn btn-ghost" data-banish="${b.id}">Remove</button>
+        </div>
+      </div>
+    </div>
+    <p class="group-title" id="chapHead">Chapters</p>
+    <div id="chapList"><p class="empty-note">Reading the contents…</p></div>`;
+
+  for (const el of $$('[data-read]', body)) el.addEventListener('click', () => openBook(el.dataset.read));
+  for (const el of $$('[data-banish]', body)) {
+    el.addEventListener('click', async () => {
+      await confirmRemove(el.dataset.banish);
+      if (!(await db.getBook(el.dataset.banish))) history.back();
+    });
+  }
+
+  const { toc, words } = await tocOf(id);
+  if (state.detail?.id !== id) return;        // she has already moved on
+
+  $('#chapHead').textContent = toc.length ? `${toc.length} chapters` : 'Chapters';
+  $('#chapList').innerHTML = toc.length
+    ? toc.map((c, i) => {
+        const w = wordsForHref(c.href, words);
+        const mins = w ? Math.max(1, Math.round(w / READ_WPM)) : 0;
+        return `
+        <button class="chap" data-depth="${c.depth}" data-chap="${escapeHtml(c.href)}">
+          <span class="chap-n">${i + 1}</span>
+          <span class="chap-name">${escapeHtml(c.label)}</span>
+          ${mins ? `<span class="chap-time">${mins} min</span>` : ''}
+        </button>`;
+      }).join('')
+    : '<p class="empty-note">This book carries no table of contents.</p>';
+
+  for (const el of $$('[data-chap]', $('#chapList'))) {
+    el.addEventListener('click', () => openBook(id, el.dataset.chap));
+  }
+}
+
 /* ══════════════ Reading Now ══════════════ */
 const READ_WPM = 250;
 
@@ -373,7 +498,7 @@ async function renderHome() {
           <p class="hero-author">${escapeHtml(current.author || 'Unknown hand')}</p>
           <div class="hero-bar"><span style="width:${pct}%"></span></div>
           <p class="hero-meta">${pct}% through${left ? ` · ${escapeHtml(left)}` : ''}</p>
-          <button class="btn btn-primary" data-open="${current.id}">Continue</button>
+          <button class="btn btn-primary" data-open="${current.id}" data-hero="1">Continue</button>
         </div>
       </div>`;
   })() : `
@@ -405,7 +530,8 @@ async function renderHome() {
   body.innerHTML = hero + strip;
 
   for (const el of $$('[data-open]', body)) {
-    el.addEventListener('click', () => openBook(el.dataset.open));
+    // The hero continues; a cover on the strip opens its page first.
+    el.addEventListener('click', () => (el.dataset.hero ? openBook(el.dataset.open) : goBook(el.dataset.open)));
   }
   for (const el of $$('[data-rail-go]', body)) {
     el.addEventListener('click', () => goTo(el.dataset.railGo));
@@ -438,7 +564,7 @@ async function applyFrame(bookId) {
 }
 
 /* ══════════════ Reader ══════════════ */
-async function openBook(id) {
+async function openBook(id, startAt) {
   const rec = await db.getBook(id);
   if (!rec) return;
   const data = await db.getBlob(id);
@@ -455,10 +581,23 @@ async function openBook(id) {
   const reader = new Reader($('#viewer'));
   state.reader = reader;
 
-  reader.on('relocated', onRelocated).on('toggleChrome', toggleChrome);
+  reader
+    .on('relocated', onRelocated)
+    .on('toggleChrome', () => { hidePopover(); toggleChrome(); })
+    .on('select', (sel) => {
+      pendingSelection = sel;
+      $('#hlDelete').hidden = true;
+      placePopover(sel.rect);
+    })
+    .on('unselect', () => { if (!$('#hlPop').hidden && pendingSelection) hidePopover(); })
+    .on('highlightTap', (h) => {
+      pendingSelection = { cfi: h.cfi, text: h.text, rect: { left: window.innerWidth / 2 - 140, top: window.innerHeight / 2, width: 280, height: 0 } };
+      $('#hlDelete').hidden = false;
+      placePopover(pendingSelection.rect);
+    });
 
   try {
-    await reader.open(rec, data);
+    await reader.open(rec, data, startAt);
   } catch {
     $('#pageLoading').hidden = true;
     toast('That book will not open. It may be damaged.', 4000);
@@ -468,12 +607,14 @@ async function openBook(id) {
 
   $('#pageLoading').hidden = true;
   buildToc();
+  refreshHighlights();
   showChrome();
   state.chromeTimer = setTimeout(hideChrome, 2800);
 }
 
 function closeBook(pop = true) {
   clearTimeout(state.chromeTimer);
+  hidePopover();
   state.reader?.destroy();
   state.reader = null;
   state.current = null;
@@ -525,6 +666,114 @@ async function refreshBookmarkButton() {
   const btn = $('#btnBookmark');
   btn.setAttribute('aria-pressed', String(on));
   btn.querySelector('use').setAttribute('href', on ? '#i-mark-on' : '#i-mark');
+}
+
+/* ══════════════ Highlights ══════════════ */
+let pendingSelection = null;
+
+function placePopover(rect) {
+  const pop = $('#hlPop');
+  pop.hidden = false;
+  const w = pop.offsetWidth || 280;
+  const h = pop.offsetHeight || 48;
+  let left = rect.left + rect.width / 2 - w / 2;
+  left = Math.max(10, Math.min(left, window.innerWidth - w - 10));
+  // Above the selection where there is room, below it otherwise.
+  let top = rect.top - h - 12;
+  if (top < 70) top = rect.top + rect.height + 12;
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+}
+
+function hidePopover() {
+  $('#hlPop').hidden = true;
+  $('#hlDelete').hidden = true;
+  pendingSelection = null;
+}
+
+async function refreshHighlights() {
+  if (!state.current || !state.reader) return;
+  const notes = await db.listNotes(state.current.id);
+  state.reader.applyHighlights(notes);
+}
+
+async function saveHighlight(colour) {
+  const sel = pendingSelection;
+  if (!sel || !state.current) return;
+  const existing = (await db.listNotes(state.current.id)).find((n) => n.cfi === sel.cfi);
+  const note = await db.saveNote({
+    ...(existing || {}),
+    bookId: state.current.id,
+    cfi: sel.cfi,
+    text: sel.text.slice(0, 600),
+    colour,
+    percent: lastLoc.percent || 0,
+    chapter: lastLoc.chapter || '',
+  });
+  state.reader.addHighlight(note);
+  state.reader.clearSelection();
+  hidePopover();
+  toast('Kept.');
+}
+
+async function deleteHighlight(cfi) {
+  if (!state.current) return;
+  await db.removeNote(state.current.id, cfi);
+  state.reader.removeHighlight(cfi);
+  hidePopover();
+  toast('Highlight lifted.');
+}
+
+async function addNoteTo(cfi) {
+  if (!state.current) return;
+  const all = await db.listNotes(state.current.id);
+  const existing = all.find((n) => n.cfi === cfi);
+  const body = prompt('Your note', existing?.note || '');
+  if (body === null) return;
+  const note = await db.saveNote({
+    ...(existing || {}),
+    bookId: state.current.id,
+    cfi,
+    text: existing?.text || pendingSelection?.text || '',
+    colour: existing?.colour || 'gold',
+    note: body.trim(),
+    percent: existing?.percent ?? (lastLoc.percent || 0),
+    chapter: existing?.chapter ?? (lastLoc.chapter || ''),
+  });
+  state.reader.addHighlight(note);
+  state.reader.clearSelection();
+  hidePopover();
+  toast(body.trim() ? 'Note kept.' : 'Note cleared.');
+}
+
+async function buildNotes() {
+  const list = $('#noteList');
+  const notes = await db.listNotes(state.current.id);
+  if (!notes.length) {
+    list.innerHTML = '<p class="empty-note">No highlights yet. Hold a finger on a word and drag to select, then pick a colour.</p>';
+    return;
+  }
+  list.innerHTML = notes.map((n) => `
+    <div class="note-row">
+      <button data-goto="${escapeHtml(n.cfi)}">
+        <span class="note-bar" style="background:${HIGHLIGHT_FILL[n.colour] || HIGHLIGHT_FILL.gold}"></span>
+        <span class="note-text">
+          <span class="note-quote">${escapeHtml(n.text)}</span>
+          ${n.note ? `<span class="note-own">${escapeHtml(n.note)}</span>` : ''}
+          <span class="note-where">${escapeHtml(n.chapter || '')} · ${Math.round((n.percent || 0) * 100)}%</span>
+        </span>
+      </button>
+      <button class="glyph" data-note-del="${escapeHtml(n.cfi)}" aria-label="Remove highlight">
+        <svg class="ico" aria-hidden="true"><use href="#i-trash"/></svg>
+      </button>
+    </div>`).join('');
+
+  for (const el of $$('[data-goto]', list)) {
+    el.addEventListener('click', () => { state.reader?.display(el.dataset.goto); closeSheets(); showChrome(); });
+  }
+  for (const el of $$('[data-note-del]', list)) {
+    el.addEventListener('click', async () => { await deleteHighlight(el.dataset.noteDel); buildNotes(); });
+  }
 }
 
 /* ══════════════ Sheets ══════════════ */
@@ -592,91 +841,127 @@ async function buildMarks() {
 }
 
 /* ── Appearance ── */
+/* Kindle splits appearance into Font, Layout and Themes, and that is the
+   shape she already knows. Every control is the one we had; only the drawer
+   it lives in has changed. */
 const THEME_LIST = [
-  ['garden', 'Garden'], ['vellum', 'Vellum'], ['dusk', 'Dusk'], ['hell', 'Hell'], ['limbo', 'Limbo'],
+  ['garden', 'Parchment'], ['vellum', 'Sepia'], ['dusk', 'Slate'],
+  ['hell', 'Hell'], ['limbo', 'Black'],
 ];
+
+let appearanceTab = 'font';
 
 function buildAppearance() {
   const body = $('#sheetTypeBody');
   body.innerHTML = `
-    <p class="group-title">Panel</p>
-    <div class="swatches" role="group" aria-label="Colour panel">
-      ${THEME_LIST.map(([k, label]) => `
-        <button class="swatch swatch-${k}" data-theme-set="${k}" aria-label="${label}"
-          aria-pressed="${prefs.theme === k}" title="${label}">A</button>`).join('')}
+    <div class="segmented type-tabs" role="tablist" aria-label="Appearance">
+      ${[['font', 'Font'], ['layout', 'Layout'], ['themes', 'Themes']].map(([k, label]) => `
+        <button role="tab" data-atab="${k}" aria-selected="${appearanceTab === k}">${label}</button>`).join('')}
     </div>
+    <div id="typePane"></div>`;
 
-    <div class="row">
-      <span class="row-label"><b>Size of the letters</b><small id="sizeNow"></small></span>
-      <span class="stepgroup">
-        <button data-size="-" aria-label="Smaller"><span class="step-a-sm">A</span></button>
-        <button data-size="+" aria-label="Larger"><span class="step-a-lg">A</span></button>
-      </span>
-    </div>
+  for (const el of $$('[data-atab]', body)) {
+    el.addEventListener('click', () => {
+      appearanceTab = el.dataset.atab;
+      for (const t of $$('[data-atab]', body)) t.setAttribute('aria-selected', String(t === el));
+      paintTypePane();
+    });
+  }
+  paintTypePane();
+}
 
-    <div class="row">
-      <span class="row-label"><b>Space between lines</b><small id="leadNow"></small></span>
-      <span class="stepgroup">
-        <button data-lead="-" aria-label="Tighter">&minus;</button>
-        <button data-lead="+" aria-label="Looser">+</button>
-      </span>
-    </div>
+function paintTypePane() {
+  const pane = $('#typePane');
+  if (!pane) return;
 
-    <div class="row">
-      <span class="row-label"><b>Margins</b><small id="marginNow"></small></span>
-      <span class="stepgroup">
-        <button data-margin="-" aria-label="Narrower">&minus;</button>
-        <button data-margin="+" aria-label="Wider">+</button>
-      </span>
-    </div>
-
-    <p class="group-title">Lettering</p>
-    <div class="fontpick" role="group" aria-label="Typeface">
-      ${Object.entries(FONTS).map(([k, f]) => `
-        <button data-font="${k}" aria-pressed="${prefs.font === k}"
-          style="font-family:${f.stack || 'inherit'}">
-          <span>${f.label}</span>
-          <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
-        </button>`).join('')}
-    </div>
-
-    <p class="group-title">The light</p>
-    <div class="slider-row">
-      <svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg>
-      <input type="range" class="dial" id="dialBright" min="25" max="100" step="1" value="${prefs.brightness}" aria-label="Brightness">
-      <svg class="ico" aria-hidden="true"><use href="#i-sun"/></svg>
-    </div>
-    <div class="row">
-      <span class="row-label"><b>Warm the screen</b><small>Takes the blue out of the light for reading at night.</small></span>
-    </div>
-    <div class="slider-row">
-      <input type="range" class="dial" id="dialWarm" min="0" max="100" step="1" value="${prefs.warmth}" aria-label="Screen warmth">
-    </div>
-
-    <p class="group-title">The page itself</p>
-    <div class="row">
-      <span class="row-label"><b>Illuminated capitals</b><small>A great inked letter opens every chapter.</small></span>
-      <button class="switch" data-toggle="capitals" aria-pressed="${prefs.capitals}" aria-label="Illuminated capitals"></button>
-    </div>
-    <div class="row">
-      <span class="row-label"><b>Creatures in the margins</b><small>Vines and beasts down the edges of the page.</small></span>
-      <button class="switch" data-toggle="marginalia" aria-pressed="${prefs.marginalia}" aria-label="Marginalia"></button>
-    </div>
-    <div class="row">
-      <span class="row-label"><b>Even edges</b><small>Stretches each line to meet both margins.</small></span>
-      <button class="switch" data-toggle="justify" aria-pressed="${prefs.justify}" aria-label="Justify text"></button>
-    </div>
-    <div class="row">
-      <span class="row-label"><b>Two pages side by side</b><small>When the iPad is turned on its side.</small></span>
-      <button class="switch" data-toggle="spread" aria-pressed="${prefs.spread}" aria-label="Two page spread"></button>
-    </div>
-    <div class="row">
-      <span class="row-label"><b>Scroll instead of turning</b><small>One long column rather than pages.</small></span>
-      <button class="switch" data-toggle="flowScroll" aria-pressed="${prefs.flow === 'scrolled'}" aria-label="Scroll instead of pages"></button>
-    </div>`;
+  if (appearanceTab === 'font') {
+    pane.innerHTML = `
+      <div class="row">
+        <span class="row-label"><b>Size</b><small id="sizeNow"></small></span>
+        <span class="stepgroup">
+          <button data-size="-" aria-label="Smaller"><span class="step-a-sm">A</span></button>
+          <button data-size="+" aria-label="Larger"><span class="step-a-lg">A</span></button>
+        </span>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Bolder text</b><small>Thickens the letterforms a little.</small></span>
+        <button class="switch" data-toggle="bold" aria-pressed="${prefs.bold}" aria-label="Bolder text"></button>
+      </div>
+      <p class="group-title">Typeface</p>
+      <div class="fontpick" role="group" aria-label="Typeface">
+        ${Object.entries(FONTS).map(([k, f]) => `
+          <button data-font="${k}" aria-pressed="${prefs.font === k}" style="font-family:${f.stack || 'inherit'}">
+            <span>${f.label}</span>
+            <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+          </button>`).join('')}
+      </div>`;
+  } else if (appearanceTab === 'layout') {
+    pane.innerHTML = `
+      <div class="row">
+        <span class="row-label"><b>Line spacing</b><small id="leadNow"></small></span>
+        <span class="stepgroup">
+          <button data-lead="-" aria-label="Tighter">&minus;</button>
+          <button data-lead="+" aria-label="Looser">+</button>
+        </span>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Margins</b><small id="marginNow"></small></span>
+        <span class="stepgroup">
+          <button data-margin="-" aria-label="Narrower">&minus;</button>
+          <button data-margin="+" aria-label="Wider">+</button>
+        </span>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Even edges</b><small>Stretches each line to meet both margins.</small></span>
+        <button class="switch" data-toggle="justify" aria-pressed="${prefs.justify}" aria-label="Justify text"></button>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Two pages side by side</b><small>When the iPad is turned on its side.</small></span>
+        <button class="switch" data-toggle="spread" aria-pressed="${prefs.spread}" aria-label="Two page spread"></button>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Scroll instead of turning</b><small>One long column rather than pages.</small></span>
+        <button class="switch" data-toggle="flowScroll" aria-pressed="${prefs.flow === 'scrolled'}" aria-label="Scroll instead of pages"></button>
+      </div>
+      <p class="group-title">Ornament</p>
+      <div class="row">
+        <span class="row-label"><b>Illuminated capitals</b><small>A great inked letter opens every chapter.</small></span>
+        <button class="switch" data-toggle="capitals" aria-pressed="${prefs.capitals}" aria-label="Illuminated capitals"></button>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Painted border</b><small>The illuminated frame around the page.</small></span>
+        <button class="switch" data-toggle="marginalia" aria-pressed="${prefs.marginalia}" aria-label="Painted border"></button>
+      </div>`;
+  } else {
+    pane.innerHTML = `
+      <p class="group-title">Page colour</p>
+      <div class="theme-list" role="group" aria-label="Page colour">
+        ${THEME_LIST.map(([k, label]) => `
+          <button class="theme-row theme-${k}" data-theme-set="${k}" aria-pressed="${prefs.theme === k}">
+            <span class="theme-chip">Aa</span>
+            <span class="theme-name">${label}</span>
+            <svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>
+          </button>`).join('')}
+      </div>
+      <p class="group-title">Light</p>
+      <div class="slider-row">
+        <svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg>
+        <input type="range" class="dial" id="dialBright" min="25" max="100" step="1" value="${prefs.brightness}" aria-label="Brightness">
+        <svg class="ico" aria-hidden="true"><use href="#i-sun"/></svg>
+      </div>
+      <div class="row">
+        <span class="row-label"><b>Warm the screen</b><small>Takes the blue out of the light for reading at night.</small></span>
+      </div>
+      <div class="slider-row">
+        <input type="range" class="dial" id="dialWarm" min="0" max="100" step="1" value="${prefs.warmth}" aria-label="Screen warmth">
+      </div>`;
+  }
 
   syncAppearanceLabels();
+  bindTypePane(pane);
+}
 
+function bindTypePane(body) {
   for (const el of $$('[data-theme-set]', body)) {
     el.addEventListener('click', () => {
       prefs.theme = el.dataset.themeSet;
@@ -707,8 +992,8 @@ function buildAppearance() {
       syncAppearanceLabels();
     });
   }
-  $('#dialBright', body).addEventListener('input', (e) => { prefs.brightness = +e.target.value; });
-  $('#dialWarm', body).addEventListener('input', (e) => { prefs.warmth = +e.target.value; });
+  $('#dialBright', body)?.addEventListener('input', (e) => { prefs.brightness = +e.target.value; });
+  $('#dialWarm', body)?.addEventListener('input', (e) => { prefs.warmth = +e.target.value; });
 
   for (const el of $$('[data-toggle]', body)) {
     el.addEventListener('click', () => {
@@ -920,9 +1205,12 @@ function wire() {
   $('#fabSummon')?.addEventListener('click', openSummon);
   $('[data-action="summon"]')?.addEventListener('click', openSummon);
   $('[data-action="leave-summon"]').addEventListener('click', () => history.back());
+  $('[data-action="leave-book"]').addEventListener('click', () => history.back());
   $('[data-action="close-book"]').addEventListener('click', () => closeBook());
 
   // The rail and the tab bar are two faces of one control.
+  goBook = async (id) => { await showBook(id); setView('book'); };
+
   goTo = async (to) => {
     if (to === 'workshop') { await buildWorkshop(); openSheet('#sheetPrefs'); return; }
     if (to === 'summon') { openSummon(); return; }
@@ -976,6 +1264,17 @@ function wire() {
     refreshBookmarkButton();
   });
 
+  // The highlight popover.
+  for (const el of $$('[data-hl]')) el.addEventListener('click', () => saveHighlight(el.dataset.hl));
+  $('#hlNote').addEventListener('click', () => pendingSelection && addNoteTo(pendingSelection.cfi));
+  $('#hlCopy').addEventListener('click', async () => {
+    if (!pendingSelection) return;
+    try { await navigator.clipboard.writeText(pendingSelection.text); toast('Copied.'); }
+    catch { toast('Could not copy.'); }
+    hidePopover();
+  });
+  $('#hlDelete').addEventListener('click', () => pendingSelection && deleteHighlight(pendingSelection.cfi));
+
   $('#tapPrev').addEventListener('click', () => state.reader?.prev());
   $('#tapNext').addEventListener('click', () => state.reader?.next());
 
@@ -992,10 +1291,12 @@ function wire() {
   for (const tab of $$('#sheetToc [role="tab"]')) {
     tab.addEventListener('click', () => {
       for (const t of $$('#sheetToc [role="tab"]')) t.setAttribute('aria-selected', String(t === tab));
-      const marks = tab.dataset.tab === 'marks';
-      $('#tocList').hidden = marks;
-      $('#markList').hidden = !marks;
-      if (marks) buildMarks();
+      const which = tab.dataset.tab;
+      $('#tocList').hidden = which !== 'toc';
+      $('#markList').hidden = which !== 'marks';
+      $('#noteList').hidden = which !== 'notes';
+      if (which === 'marks') buildMarks();
+      if (which === 'notes') buildNotes();
     });
   }
 
@@ -1123,7 +1424,7 @@ async function boot() {
     applyShell();
     if (!state.reader) return;
     if (key === 'flow' || key === 'spread') state.reader.reflow();
-    else if (['theme', 'font', 'fontScale', 'lineHeight', 'margin', 'justify', 'capitals'].includes(key)) {
+    else if (['theme', 'font', 'fontScale', 'lineHeight', 'margin', 'justify', 'capitals', 'bold'].includes(key)) {
       state.reader.restyle();
     }
   });

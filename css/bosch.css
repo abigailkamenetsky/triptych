@@ -2312,3 +2312,251 @@
      rectangle that kept appearing around the text. */
   :root[data-frame="on"] #viewReader::before { display: none; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   BOOK DETAIL. Kindle's book page: the cover, the facts, and every
+   chapter with what it costs to read.
+   ══════════════════════════════════════════════════════════════ */
+@layer library {
+  .detail {
+    display: flex;
+    gap: clamp(18px, 4vw, 34px);
+    align-items: flex-start;
+    padding-block: 18px 26px;
+  }
+  .detail-cover {
+    flex: none;
+    display: block;
+    width: clamp(122px, 32vw, 210px);
+    aspect-ratio: 2 / 3;
+    position: relative;
+    border-radius: 2px 6px 6px 2px;
+    overflow: hidden;
+    box-shadow: var(--shadow), 0 0 0 1px color-mix(in oklab, var(--gold) 52%, transparent);
+  }
+  .detail-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .detail-text { flex: 1; min-width: 0; }
+  .detail-title {
+    font-family: var(--font-alt);
+    font-size: clamp(21px, 5vw, 31px);
+    font-weight: 600;
+    line-height: 1.14;
+    text-wrap: balance;
+  }
+  .detail-author {
+    margin-top: 4px;
+    font-family: var(--font-alt);
+    font-size: 16.5px;
+    font-style: italic;
+    color: var(--fg-faint);
+  }
+  .detail-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+    gap: 12px 16px;
+    margin-top: 16px;
+    padding-block: 14px;
+    border-block: 1px solid var(--rule);
+  }
+  .detail-facts dt {
+    font-family: var(--font-alt);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .detail-facts dd {
+    margin: 3px 0 0;
+    font-family: var(--font-alt);
+    font-size: 16px;
+    color: var(--fg);
+  }
+  .detail-bar {
+    margin-top: 16px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+  .detail-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ember)); }
+  .detail-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+  .chap {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    width: 100%;
+    padding: 13px 4px;
+    text-align: start;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-alt);
+    color: var(--fg);
+    transition: background-color 150ms var(--ease);
+  }
+  .chap:active { background: color-mix(in oklab, var(--accent) 10%, transparent); }
+  .chap[data-depth="1"] { padding-inline-start: 26px; }
+  .chap[data-depth="2"] { padding-inline-start: 48px; }
+  .chap-n {
+    flex: none;
+    min-width: 2ch;
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-faint);
+  }
+  .chap-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 16.5px;
+    line-height: 1.3;
+  }
+  .chap-time {
+    flex: none;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--fg-faint);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   APPEARANCE, in Kindle's three drawers.
+   ══════════════════════════════════════════════════════════════ */
+@layer sheets {
+  .type-tabs { margin-bottom: 16px; }
+  .type-tabs button { flex: 1; text-align: center; }
+
+  /* Page colour as named rows, the way Kindle lists its themes. */
+  .theme-list { display: flex; flex-direction: column; gap: 6px; }
+  .theme-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 5px;
+    text-align: start;
+    box-shadow: inset 0 0 0 1px var(--rule);
+    transition: box-shadow 160ms var(--ease);
+  }
+  .theme-row[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .theme-chip {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 38px;
+    border-radius: 3px;
+    font-family: var(--font-alt);
+    font-size: 17px;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink-900) 26%, transparent);
+  }
+  .theme-name {
+    flex: 1;
+    font-family: var(--font-alt);
+    font-size: 16.5px;
+    color: var(--fg);
+  }
+  .theme-row .ico { width: 19px; height: 19px; color: var(--accent); opacity: 0; }
+  .theme-row[aria-pressed="true"] .ico { opacity: 1; }
+
+  .theme-garden .theme-chip { background: #f7efdc; color: #241a0d; }
+  .theme-vellum .theme-chip { background: #f2e3c2; color: #33240f; }
+  .theme-dusk   .theme-chip { background: #464036; color: #e9dfc9; }
+  .theme-hell   .theme-chip { background: #1c1712; color: #d9611f; }
+  .theme-limbo  .theme-chip { background: #000;    color: #c3b494; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   HIGHLIGHTS. A popover over the selection, and the list behind it.
+   ══════════════════════════════════════════════════════════════ */
+@layer util {
+  .hl-pop {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--ink-900);
+    box-shadow: 0 6px 26px rgb(0 0 0 / .5), inset 0 0 0 1px rgb(255 255 255 / .1);
+    animation: popin 160ms var(--ease);
+  }
+  .hl-pop[hidden] { display: none; }
+  @keyframes popin { from { opacity: 0; transform: scale(.92); } }
+
+  .hl-colours { display: flex; gap: 7px; }
+  .hl-swatch {
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / .28);
+    transition: transform 140ms var(--ease);
+  }
+  .hl-swatch:active { transform: scale(.86); }
+  .hl-gold  { background: #c9a227; }
+  .hl-sage  { background: #6f8355; }
+  .hl-lapis { background: #3a5a8c; }
+  .hl-rose  { background: #a8341f; }
+
+  .hl-sep { width: 1px; height: 22px; background: rgb(255 255 255 / .18); }
+  .hl-act {
+    padding: 5px 9px;
+    font-family: var(--font-alt);
+    font-size: 15px;
+    color: var(--parch-050);
+    border-radius: 4px;
+  }
+  .hl-act:active { background: rgb(255 255 255 / .12); }
+  .hl-del { color: #e8917c; }
+}
+
+@layer sheets {
+  .note-row { display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid var(--rule); }
+  .note-row > button:first-child {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    padding: 14px 4px;
+    text-align: start;
+  }
+  .note-bar { flex: none; width: 3px; border-radius: 2px; align-self: stretch; }
+  .note-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .note-quote {
+    font-family: var(--font-alt);
+    font-size: 16px;
+    font-style: italic;
+    line-height: 1.42;
+    color: var(--fg);
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-own {
+    font-family: var(--font-alt);
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--fg-soft);
+    padding-inline-start: 10px;
+    border-inline-start: 2px solid var(--accent);
+  }
+  .note-where {
+    font-family: var(--font-alt);
+    font-size: 12.5px;
+    letter-spacing: .04em;
+    color: var(--fg-faint);
+  }
+  .note-row .glyph { align-self: center; width: 38px; height: 38px; }
+  .note-row .ico { width: 18px; height: 18px; }
+
+  /* Three tabs need a touch less room each. */
+  #sheetToc .segmented button { padding-inline: 13px; font-size: 14px; }
+}

@@ -27,8 +27,8 @@ export const beastSrc = (name) => `assets/beasts/${name}.webp`;
 
 /* The cut figures, for anywhere a creature has to stand on its own. */
 export const DEMONS = [
-  'camel', 'drummer', 'messenger', 'porcupine', 'prince',
-  'rabbit', 'reader', 'skater', 'strawberry', 'wheelman',
+  'camel', 'drummer', 'flower', 'goldfinch', 'iceSkater', 'lobster', 'messenger',
+  'porcupine', 'prince', 'rabbit', 'skater', 'strawberry', 'wheelman', 'winged',
 ];
 
 export function beast(name, cls = '') {
