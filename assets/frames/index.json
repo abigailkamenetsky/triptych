@@ -2,24 +2,48 @@
  "landscape": [
   {
    "src": "landscape-1.webp",
-   "centre": "#cec1a2"
+   "centre": "#d1c4a4"
+  },
+  {
+   "src": "landscape-2.webp",
+   "centre": "#d1c4a4"
+  },
+  {
+   "src": "landscape-3.webp",
+   "centre": "#d2c5a5"
+  },
+  {
+   "src": "landscape-4.webp",
+   "centre": "#d1c4a4"
   }
  ],
  "portrait": [
   {
    "src": "portrait-1.webp",
-   "centre": "#cec1a1"
+   "centre": "#d1c4a4"
+  },
+  {
+   "src": "portrait-2.webp",
+   "centre": "#d2c5a5"
+  },
+  {
+   "src": "portrait-3.webp",
+   "centre": "#d2c5a5"
+  },
+  {
+   "src": "portrait-4.webp",
+   "centre": "#d1c4a4"
   }
  ],
  "inset": {
   "landscape": {
-   "x": 0.125,
-   "y": 0.115
+   "x": 0.2,
+   "y": 0.2
   },
   "portrait": {
-   "x": 0.115,
-   "y": 0.105
+   "x": 0.2,
+   "y": 0.2
   }
  },
- "synthetic": true
+ "synthetic": false
 }

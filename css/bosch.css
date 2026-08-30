@@ -2087,10 +2087,17 @@
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    border: var(--plate-w) solid transparent;
+    /* No `fill`: the middle of the plate would be stretched from a small
+       region and never quite match the flat tone the page is painted. The
+       reader's own background fills the centre instead, from the same value. */
+    border-style: solid;
+    border-color: transparent;
+    border-width: var(--plate-h) var(--plate-w);
     border-image-source: var(--reading-frame);
-    border-image-slice: var(--plate-slice-y) var(--plate-slice-x) fill;
-    border-image-width: var(--plate-w);
+    border-image-slice: var(--plate-slice-y) var(--plate-slice-x);
+    /* The corner slice is not square, so neither is its box, or the figure
+       standing in it gets squashed. */
+    border-image-width: var(--plate-h) var(--plate-w);
     border-image-repeat: round;
   }
   :root[data-frame="on"][data-view="reader"] .frame { display: none; }
@@ -2103,8 +2110,8 @@
            calc(var(--plate-w) + var(--sat-l) + 6px);
     box-shadow: none;
   }
-  :root { --plate-w: clamp(26px, 7vw, 96px); }
-  @media (width >= 760px) { :root { --plate-w: clamp(54px, 8vw, 132px); } }
+  :root { --plate-h: clamp(46px, 14vw, 74px); --plate-w: var(--plate-h); }
+  @media (width >= 760px) { :root { --plate-h: clamp(58px, 8vw, 112px); } }
   :root[data-frame="on"] #viewReader { background: var(--frame-centre, var(--page)); }
 
   /* The chrome floats over the art rather than banding across it. */
@@ -2296,4 +2303,12 @@
   @media (width < 760px) { .fab { display: none; } }
   /* The header belongs to the shelf; Reading Now titles itself. */
   :root[data-view="home"] .topbar-library { display: none; }
+}
+
+
+@layer wide {
+  /* The board predates the plates. With a plate in place it paints its own
+     craquelured vellum through the plate's transparent centre, which is the
+     rectangle that kept appearing around the text. */
+  :root[data-frame="on"] #viewReader::before { display: none; }
 }

@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '8fa176bf6b47';
+const VERSION = '871af3d440b5';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -30,7 +30,13 @@ const PRECACHE = [
   'assets/edge/top.webp',
   'assets/frames/index.json',
   'assets/frames/landscape-1.webp',
+  'assets/frames/landscape-2.webp',
+  'assets/frames/landscape-3.webp',
+  'assets/frames/landscape-4.webp',
   'assets/frames/portrait-1.webp',
+  'assets/frames/portrait-2.webp',
+  'assets/frames/portrait-3.webp',
+  'assets/frames/portrait-4.webp',
   'assets/ground/page-dark.webp',
   'assets/ground/page-hell.webp',
   'assets/ground/page-light.webp',

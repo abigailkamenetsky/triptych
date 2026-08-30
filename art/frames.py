@@ -21,6 +21,7 @@ from PIL import Image, ImageFilter
 Image.MAX_IMAGE_PIXELS = None
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SUPPLIED = os.path.join(ROOT, 'art', 'supplied')
+GENERATED = os.path.join(ROOT, 'art', 'generated')
 EDGE = os.path.join(ROOT, 'assets', 'edge')
 GROUND = os.path.join(ROOT, 'assets', 'ground')
 OUT = os.path.join(ROOT, 'assets', 'frames')
@@ -31,16 +32,20 @@ SHAPES = {'landscape': (1800, 1350), 'portrait': (1350, 1800)}
 
 # How far in from each edge the border art stops and the page begins. Measured
 # off the supplied art; the reader insets its text by this much.
-INSET = {'landscape': {'x': 0.125, 'y': 0.115}, 'portrait': {'x': 0.115, 'y': 0.105}}
+INSET = {'landscape': {'x': 0.20, 'y': 0.20}, 'portrait': {'x': 0.20, 'y': 0.20}}
 
 READABLE = ('.png', '.jpg', '.jpeg', '.webp', '.PNG', '.JPG', '.JPEG', '.WEBP')
 
 
 def supplied():
-    out = []
-    for ext in READABLE:
-        out.extend(glob.glob(os.path.join(SUPPLIED, f'*{ext}')))
-    return sorted(set(out))
+    """Hand-supplied art wins outright; otherwise use what plates.py composed."""
+    for folder in (SUPPLIED, GENERATED):
+        out = []
+        for ext in READABLE:
+            out.extend(glob.glob(os.path.join(folder, f'*{ext}')))
+        if out:
+            return sorted(set(out)), folder
+    return [], None
 
 
 def fit_cover(im, size):
@@ -102,7 +107,7 @@ if __name__ == '__main__':
     for f in glob.glob(os.path.join(OUT, '*.webp')):
         os.remove(f)
 
-    files = supplied()
+    files, source = supplied()
     index = {'landscape': [], 'portrait': [], 'inset': INSET, 'synthetic': not files}
     total = 0
 
@@ -129,7 +134,7 @@ if __name__ == '__main__':
                 total += sz
                 print(f'  (borrowed for {shape}) -> {name}')
     else:
-        print('  art/supplied/ is empty, building stand-ins from the edge bands')
+        print('  nothing in art/supplied/ or art/generated/, using stand-ins')
         for shape in SHAPES:
             im = synth(shape)
             name, sz = write(im, shape, 1)
@@ -141,4 +146,4 @@ if __name__ == '__main__':
         json.dump(index, fh, indent=1)
 
     print(f'\n{len(index["landscape"])} landscape, {len(index["portrait"])} portrait, {total/1024:.0f} KB total')
-    print('synthetic stand-ins' if index['synthetic'] else 'using supplied art')
+    print('synthetic stand-ins' if index['synthetic'] else f'using art from {os.path.relpath(source, ROOT)}/')

@@ -428,6 +428,10 @@ async function applyFrame(bookId) {
   root.style.setProperty('--reading-frame', `url("${frameSrc(plate.src)}")`);
   root.style.setProperty('--plate-slice-x', `${(slice.x * 100).toFixed(2)}%`);
   root.style.setProperty('--plate-slice-y', `${(slice.y * 100).toFixed(2)}%`);
+  // The corner slice keeps the plate's proportions, so the side borders are
+  // drawn wider or narrower than the top and bottom to match.
+  const plateAR = (shape === 'landscape' ? 1800 / 1350 : 1350 / 1800);
+  root.style.setProperty('--plate-w', `calc(var(--plate-h) * ${plateAR.toFixed(4)})`);
   root.style.setProperty('--frame-centre', plate.centre);
   setPageTone(plate.centre);
   void stage;
