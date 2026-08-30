@@ -4,7 +4,7 @@
  * import and backup.
  */
 
-import { conjure, draw, summon as summonDemons, beast, beastFor, PLATE_PIGMENTS } from './bestiary.js';
+import { conjure, draw, summon as summonDemons, demonSrc, beastFor, DEMONS, PLATE_PIGMENTS } from './bestiary.js';
 import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
 import { Reader } from './reader.js';
@@ -131,7 +131,7 @@ async function renderShelf() {
       const [a, c] = PLATE_PIGMENTS[i % PLATE_PIGMENTS.length];
       art = `<span class="book-plate" style="--plate-a:${a};--plate-b:${c}">
           <span class="book-plate-title">${escapeHtml(b.title)}</span>
-          <span class="book-plate-mark">${beast(beastFor(b.id))}</span>
+          <span class="book-plate-mark"><img class="beast demon" src="${demonSrc(beastFor(b.id, DEMONS))}" alt="" loading="lazy" decoding="async"></span>
         </span>`;
     }
     const pct = Math.round((b.percent || 0) * 100);
@@ -357,6 +357,7 @@ function closeBook(pop = true) {
   closeSheets();
   setView('library', false);
   renderShelf();
+  document.dispatchEvent(new Event('delights:closedbook'));
   if (pop && history.state?.view === 'reader') history.back();
 }
 
@@ -924,14 +925,57 @@ function highlight(text, q) {
   return safe.replace(new RegExp(needle, 'ig'), (m) => `<b style="color:var(--accent)">${m}</b>`);
 }
 
+/* ══════════════ The service worker, and getting off an old one ══════════════ */
+/* Cache-first means a stale build can serve itself forever. Without this the
+   only way onto a new version is closing every tab, which nobody does. */
+function registerWorker() {
+  let reloading = false;
+  let pending = false;
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    const check = () => reg.update().catch(() => {});
+
+    reg.addEventListener('updatefound', () => {
+      const next = reg.installing;
+      if (!next) return;
+      next.addEventListener('statechange', () => {
+        // A controller already exists, so this is an update rather than a
+        // first install.
+        if (next.state !== 'installed' || !navigator.serviceWorker.controller) return;
+        if (state.view === 'reader') {
+          // Never yank the page out from under her mid-chapter.
+          pending = true;
+          toast('A new version is ready. It will load when you close the book.', 4000);
+        } else {
+          next.postMessage('skipWaiting');
+        }
+      });
+    });
+
+    // Take the update the moment she leaves the book.
+    document.addEventListener('delights:closedbook', () => {
+      if (pending && reg.waiting) reg.waiting.postMessage('skipWaiting');
+    });
+
+    check();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check();
+    });
+  }).catch(() => {});
+}
+
 /* ══════════════ Boot ══════════════ */
 async function boot() {
   // First, before anything that can block. The dedication card waits on a tap,
   // and registering behind it meant the app only became offline-capable once
   // she had dismissed it.
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator) registerWorker();
 
   conjure(document);
   draw(document);

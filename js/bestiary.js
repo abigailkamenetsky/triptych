@@ -29,6 +29,12 @@ export const BANDS = [
 ];
 
 export const beastSrc = (name) => `assets/beasts/${name}.webp`;
+
+/* The cut figures, for anywhere a creature has to stand on its own. */
+export const DEMONS = [
+  'camel', 'drummer', 'messenger', 'porcupine', 'prince',
+  'rabbit', 'reader', 'skater', 'strawberry', 'wheelman',
+];
 export const bandSrc = (name) => `assets/bands/${name}.webp`;
 
 export function beast(name, cls = '') {
@@ -130,7 +136,7 @@ export async function summon(root = document) {
     const name = el.dataset.demon;
     const dims = index[name];
     if (dims) el.style.aspectRatio = `${dims[0]} / ${dims[1]}`;
-    el.innerHTML = `<img class="demon" src="${demonSrc(name)}" alt="" ` +
+    el.innerHTML = `<img class="beast demon" src="${demonSrc(name)}" alt="" ` +
                    `loading="lazy" decoding="async" draggable="false">`;
   }
 }
