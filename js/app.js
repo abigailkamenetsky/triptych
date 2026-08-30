@@ -16,8 +16,10 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const root = document.documentElement;
 
+let goTo = () => {};
+
 const state = {
-  view: 'library',
+  view: null,
   books: [],
   reader: null,
   current: null,
@@ -63,7 +65,7 @@ function setView(name, push = true) {
   state.view = name;
   root.dataset.view = name;
   for (const v of $$('.view')) v.hidden = v.dataset.view !== name;
-  for (const r of $$('.rail-item')) {
+  for (const r of $$('[data-rail]')) {
     const on = r.dataset.rail === name;
     if (on) r.setAttribute('aria-current', 'page'); else r.removeAttribute('aria-current');
   }
@@ -90,6 +92,19 @@ function sortBooks(list) {
 function releaseCovers() {
   for (const url of state.coverUrls.values()) URL.revokeObjectURL(url);
   state.coverUrls.clear();
+}
+
+function coverArt(b, i) {
+  if (b.cover) {
+    const url = URL.createObjectURL(b.cover);
+    state.coverUrls.set(`${b.id}:${i}`, url);
+    return `<img src="${url}" alt="" loading="lazy" decoding="async">`;
+  }
+  const [a, c] = PLATE_PIGMENTS[i % PLATE_PIGMENTS.length];
+  return `<span class="book-plate" style="--plate-a:${a};--plate-b:${c}">
+      <span class="book-plate-title">${escapeHtml(b.title)}</span>
+      <span class="book-plate-mark"><img class="beast demon" src="${demonSrc(beastFor(b.id, DEMONS))}" alt="" loading="lazy" decoding="async"></span>
+    </span>`;
 }
 
 async function renderShelf() {
@@ -317,6 +332,86 @@ function showDedication() {
   });
 }
 
+/* ══════════════ Reading Now ══════════════ */
+const READ_WPM = 250;
+
+function minutesLeft(book) {
+  const words = book.words || 0;
+  const left = words * (1 - (book.percent || 0));
+  if (!left) return null;
+  const m = Math.round(left / READ_WPM);
+  if (m < 1) return 'less than a minute left';
+  if (m < 60) return `${m} ${m === 1 ? 'minute' : 'minutes'} left`;
+  const h = Math.round(m / 60);
+  return `${h} ${h === 1 ? 'hour' : 'hours'} left`;
+}
+
+async function renderHome() {
+  state.books = await db.listBooks();
+  const body = $('#homeBody');
+  releaseCovers();
+
+  const started = state.books
+    .filter((b) => (b.percent || 0) > 0.005 && b.lastOpened)
+    .sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
+  const current = started[0];
+
+  if (!state.books.length) {
+    body.innerHTML = `<p class="empty-note">Nothing on the shelf yet. Summon a book and it will appear here.</p>`;
+    return;
+  }
+
+  const hero = current ? (() => {
+    const pct = Math.round((current.percent || 0) * 100);
+    const left = minutesLeft(current);
+    return `
+      <div class="hero">
+        <span class="hero-cover">${coverArt(current, 0)}</span>
+        <div class="hero-text">
+          <p class="hero-eyebrow">Continue reading</p>
+          <h2 class="hero-title">${escapeHtml(current.title)}</h2>
+          <p class="hero-author">${escapeHtml(current.author || 'Unknown hand')}</p>
+          <div class="hero-bar"><span style="width:${pct}%"></span></div>
+          <p class="hero-meta">${pct}% through${left ? ` · ${escapeHtml(left)}` : ''}</p>
+          <button class="btn btn-primary" data-open="${current.id}">Continue</button>
+        </div>
+      </div>`;
+  })() : `
+      <div class="hero hero-empty">
+        <div class="hero-text">
+          <p class="hero-eyebrow">Nothing open</p>
+          <h2 class="hero-title">Pick something from the shelf</h2>
+          <button class="btn btn-primary" data-rail-go="library">Open the library</button>
+        </div>
+      </div>`;
+
+  const rest = state.books
+    .filter((b) => b.id !== current?.id)
+    .sort((a, b) => (b.lastOpened || b.added) - (a.lastOpened || a.added))
+    .slice(0, 12);
+
+  const strip = rest.length ? `
+    <p class="strip-title">On the shelf</p>
+    <div class="strip">
+      ${rest.map((b, i) => `
+        <button class="strip-book" data-open="${b.id}">
+          <span class="book-cover">${coverArt(b, i + 1)}
+            ${(b.percent || 0) > 0.005 ? `<span class="book-progress"><span style="width:${Math.round(b.percent * 100)}%"></span></span>` : ''}
+          </span>
+          <span class="strip-name">${escapeHtml(b.title)}</span>
+        </button>`).join('')}
+    </div>` : '';
+
+  body.innerHTML = hero + strip;
+
+  for (const el of $$('[data-open]', body)) {
+    el.addEventListener('click', () => openBook(el.dataset.open));
+  }
+  for (const el of $$('[data-rail-go]', body)) {
+    el.addEventListener('click', () => goTo(el.dataset.railGo));
+  }
+}
+
 /* ══════════════ The border plate behind the page ══════════════ */
 async function applyFrame(bookId) {
   const idx = await loadFrames();
@@ -345,6 +440,7 @@ async function openBook(id) {
   const data = await db.getBlob(id);
   if (!data) { toast('The file for this one has gone missing.'); return; }
 
+  state.cameFrom = state.view === 'reader' ? state.cameFrom : state.view;
   state.current = rec;
   $('#readerTitle').textContent = rec.title;
   $('#pageLoading').hidden = false;
@@ -381,8 +477,9 @@ function closeBook(pop = true) {
   setPageTone(null);
   $('#viewer').innerHTML = '';
   closeSheets();
-  setView('library', false);
+  setView(state.cameFrom || 'home', false);
   renderShelf();
+  renderHome();
   document.dispatchEvent(new Event('delights:closedbook'));
   if (pop && history.state?.view === 'reader') history.back();
 }
@@ -396,7 +493,8 @@ function onRelocated(loc) {
   if (document.activeElement !== scrub) scrub.value = String(pct);
   paintScrub(pct / 1000);
 
-  $('#metaLeft').textContent = loc.chapter || state.current?.title || '';
+  // Kindle leads with time remaining and keeps position secondary.
+  $('#metaLeft').textContent = state.reader?.minutesLeft(loc) || loc.chapter || '';
   const pctText = `${Math.round(loc.percent * 100)}%`;
   $('#metaRight').textContent = loc.pages > 1 ? `${pctText} · page ${loc.page} of ${loc.pages}` : pctText;
 
@@ -820,17 +918,15 @@ function wire() {
   $('[data-action="leave-summon"]').addEventListener('click', () => history.back());
   $('[data-action="close-book"]').addEventListener('click', () => closeBook());
 
-  // The rail carries the same destinations as the phone chrome.
-  for (const item of $$('.rail-item')) {
-    item.addEventListener('click', async () => {
-      const to = item.dataset.rail;
-      if (to === 'library') { if (state.view !== 'library') history.back(); }
-      else if (to === 'summon') openSummon();
-      else if (to === 'search') {
-        if (state.view !== 'library') history.back();
-        setTimeout(() => $('#shelfSearch')?.focus(), 220);
-      } else if (to === 'workshop') { await buildWorkshop(); openSheet('#sheetPrefs'); }
-    });
+  // The rail and the tab bar are two faces of one control.
+  goTo = async (to) => {
+    if (to === 'workshop') { await buildWorkshop(); openSheet('#sheetPrefs'); return; }
+    if (to === 'summon') { openSummon(); return; }
+    if (to === 'home') { await renderHome(); setView('home'); return; }
+    if (to === 'library') { await renderShelf(); setView('library'); return; }
+  };
+  for (const item of $$('[data-rail]')) {
+    item.addEventListener('click', () => goTo(item.dataset.rail));
   }
 
   // Searching and filtering the shelf.
@@ -1028,8 +1124,11 @@ async function boot() {
     }
   });
 
-  history.replaceState({ view: 'library' }, '');
+  // Kindle opens on whatever you are in the middle of, so this does too.
+  history.replaceState({ view: 'home' }, '');
   await renderShelf();
+  await renderHome();
+  setView('home', false);
   await db.requestPersistence().catch(() => {});
 
   // The books arrive behind the card, so the shelf is ready when she taps through.
@@ -1038,6 +1137,7 @@ async function boot() {
   const dedicated = localStorage.getItem('triptych.dedicated') === '1';
   await showDedication();
   const seeded = await seeding;
+  if (seeded) await renderHome();
   if (firstRun && seeded && dedicated) {
     toast(`${seeded} to begin with. Happy birthday.`, 5200);
   }

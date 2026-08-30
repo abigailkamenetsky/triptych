@@ -2112,3 +2112,188 @@
     background: color-mix(in oklab, var(--frame-centre, var(--bg-raised)) 88%, transparent);
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   KINDLE STRUCTURE.
+   Her mother already reads on Kindle, so the shape of the app follows it:
+   navigation along the bottom on a phone, a Reading Now screen that opens on
+   whatever she has in progress, and time remaining rather than a percentage.
+   ══════════════════════════════════════════════════════════════ */
+@layer shell {
+  .tabbar {
+    position: fixed;
+    z-index: 30;
+    inset-inline: 0;
+    inset-block-end: 0;
+    display: flex;
+    padding-bottom: var(--sat-bot);
+    background: color-mix(in oklab, var(--bg-raised) 94%, transparent);
+    backdrop-filter: blur(22px) saturate(1.2);
+    -webkit-backdrop-filter: blur(22px) saturate(1.2);
+    border-top: 1px solid var(--rule);
+    box-shadow: 0 -1px 0 color-mix(in oklab, var(--gold) 26%, transparent);
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 4px 7px;
+    min-height: 52px;
+    color: var(--fg-faint);
+    font-family: var(--font-alt);
+    font-size: 11px;
+    letter-spacing: .02em;
+    transition: color 160ms var(--ease);
+  }
+  .tab .ico { width: 22px; height: 22px; }
+  .tab[aria-current="page"] { color: var(--accent); }
+  .tab:active { opacity: .6; }
+
+  /* The reader is full bleed, and the tab bar has no business over a page. */
+  :root[data-view="reader"] .tabbar { display: none; }
+  /* The rail replaces it once there is room. */
+  @media (width >= 760px) { .tabbar { display: none; } }
+  /* And it needs room made for it below the content. */
+  @media (width < 760px) {
+    .scroller { padding-bottom: calc(var(--sat-bot) + 84px); }
+    .fab { inset-block-end: calc(var(--sat-bot) + 74px); }
+  }
+}
+
+@layer library {
+  .screen-title {
+    padding-block: 20px 4px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 8vw, 42px);
+    font-weight: 400;
+    line-height: 1;
+  }
+  @media (width >= 760px) {
+    .screen-title { padding-block: calc(var(--frame-h) + 18px) 4px; }
+  }
+
+  /* ── The hero: whatever she is in the middle of ── */
+  .hero {
+    display: flex;
+    gap: clamp(16px, 4vw, 30px);
+    align-items: flex-start;
+    padding-block: 18px 26px;
+  }
+  .hero-cover {
+    flex: none;
+    display: block;
+    width: clamp(112px, 30vw, 180px);
+    aspect-ratio: 2 / 3;
+    position: relative;
+    border-radius: 2px 5px 5px 2px;
+    overflow: hidden;
+    box-shadow: var(--shadow), 0 0 0 1px color-mix(in oklab, var(--gold) 50%, transparent);
+  }
+  .hero-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero-eyebrow {
+    font-family: var(--font-alt);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .hero-title {
+    margin-top: 5px;
+    font-family: var(--font-alt);
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 600;
+    line-height: 1.16;
+    text-wrap: balance;
+  }
+  .hero-author {
+    margin-top: 3px;
+    font-family: var(--font-alt);
+    font-size: 15.5px;
+    font-style: italic;
+    color: var(--fg-faint);
+  }
+  .hero-bar {
+    margin-top: 14px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--rule);
+    overflow: hidden;
+  }
+  .hero-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ember)); }
+  .hero-meta {
+    margin-top: 7px;
+    font-family: var(--font-alt);
+    font-size: 14px;
+    font-style: italic;
+    color: var(--fg-soft);
+  }
+  .hero-text .btn { margin-top: 16px; }
+  .hero-empty { padding-block: 40px; }
+
+  /* ── The shelf strip below it ── */
+  .strip-title {
+    margin-top: 6px;
+    padding-block: 6px 10px;
+    font-family: var(--font-alt);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+    border-top: 1px solid var(--rule);
+  }
+  .strip {
+    display: flex;
+    gap: clamp(12px, 3vw, 20px);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: 10px;
+    scrollbar-width: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+  .strip-book {
+    flex: none;
+    width: clamp(92px, 24vw, 132px);
+    scroll-snap-align: start;
+    text-align: start;
+  }
+  .strip-book .book-cover {
+    display: block;
+    aspect-ratio: 2 / 3;
+    position: relative;
+    border-radius: 2px 5px 5px 2px;
+    overflow: hidden;
+  }
+  .strip-book .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .strip-name {
+    display: -webkit-box;
+    margin-top: 7px;
+    font-family: var(--font-alt);
+    font-size: 13.5px;
+    line-height: 1.24;
+    color: var(--fg-soft);
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+@layer reader {
+  /* Time remaining is the headline, so give it the weight. */
+  .scrub-meta #metaLeft { font-style: normal; font-weight: 500; color: var(--fg-soft); }
+}
+
+
+@layer shell {
+  /* The tab bar already carries Summon, so the floating button is a second
+     copy of one control. */
+  @media (width < 760px) { .fab { display: none; } }
+  /* The header belongs to the shelf; Reading Now titles itself. */
+  :root[data-view="home"] .topbar-library { display: none; }
+}

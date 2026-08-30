@@ -141,6 +141,7 @@ export class Reader {
     this.record = record;
     this.book = window.ePub(data);
     await this.book.ready;
+    this.words = record.words || 0;
 
     this.rendition = this.book.renderTo(this.host, {
       width: '100%',
@@ -164,9 +165,40 @@ export class Reader {
     await this.rendition.display(state?.cfi || undefined);
 
     if (!this.book.locations.length()) this._buildLocations();
+    else if (!this.words) this._countWords();
 
     this._watchResize();
     return this.book;
+  }
+
+  /* Roughly five and a half characters to the word, which is the usual figure
+     for English prose and close enough for a reading estimate. */
+  _countWords() {
+    const n = this.book.locations?.length?.() || 0;
+    if (!n) return;
+    const words = Math.round((n * 1400) / 5.5);
+    this.words = words;
+    db.touchBook(this.record.id, { words });
+  }
+
+  /* Kindle's most recognisable cue. epub.js reports the page within the
+     current section, so the estimate is the average chapter scaled by how much
+     of this one is left. */
+  minutesLeft(loc) {
+    const words = this.words || this.record?.words || 0;
+    const sections = this.book?.spine?.length || 0;
+    const total = loc?.pages || 0;
+    if (!words || !sections || total < 1) return '';
+
+    const perChapter = words / sections;
+    const leftFraction = Math.max(0, 1 - (loc.page || 1) / total);
+    const mins = Math.round((perChapter * leftFraction) / 250);
+
+    if (loc.atEnd) return 'End of the book';
+    if (mins < 1) return 'Less than a minute left in chapter';
+    if (mins < 60) return `${mins} ${mins === 1 ? 'minute' : 'minutes'} left in chapter`;
+    const h = Math.round(mins / 60);
+    return `${h} ${h === 1 ? 'hour' : 'hours'} left in chapter`;
   }
 
   _spreadMode() {
@@ -175,11 +207,14 @@ export class Reader {
   }
 
   /* Locations power the percentage and the scrubber. Generating them costs a
-     few seconds on a long book, so the result is cached against the book. */
+     few seconds on a long book, so the result is cached against the book.
+     They also give the length of the book for nothing: each location covers a
+     known span of characters, so the word count falls out of the count. */
   async _buildLocations() {
     try {
       await this.book.locations.generate(1400);
       await db.saveState(this.record.id, { locations: this.book.locations.save() });
+      this._countWords();
       this.emit('locations');
       if (this.location) this._onRelocated(this.location);
     } catch { /* percentage falls back to spine position */ }

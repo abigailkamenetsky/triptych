@@ -99,6 +99,22 @@
     <symbol id="i-sort" viewBox="0 0 24 24">
       <path d="M4.6 6.4h14.8M4.6 12h10.2M4.6 17.6h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
     </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.4 10.4 12 3.4l8.6 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5.4 9.1V19a1.4 1.4 0 0 0 1.4 1.4h10.4A1.4 1.4 0 0 0 18.6 19V9.1" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M9.8 20.4v-5.6h4.4v5.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-books" viewBox="0 0 24 24">
+      <path d="M4.2 4.6h4.2v14.8H4.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M9.9 4.6h4.2v14.8H9.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="m15.7 5.9 3.9-1 3 13.9-3.9 1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" transform="translate(-2.2 0)"/>
+      <path d="M4.2 8.2h4.2M9.9 8.2h4.2" stroke="currentColor" stroke-width="1.3"/>
+    </symbol>
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <circle cx="5.4" cy="12" r="1.7" fill="currentColor"/>
+      <circle cx="12" cy="12" r="1.7" fill="currentColor"/>
+      <circle cx="18.6" cy="12" r="1.7" fill="currentColor"/>
+    </symbol>
     <symbol id="i-check" viewBox="0 0 24 24">
       <path d="M4.6 12.6 9.4 17.4 19.4 6.8" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
@@ -120,7 +136,9 @@
     <p class="rail-sub" id="railCount"></p>
   </div>
   <ul class="rail-nav">
-    <li><button class="rail-item" data-rail="library" aria-current="page">
+    <li><button class="rail-item" data-rail="home" aria-current="page">
+      <span class="rail-beast" data-demon="drummer"></span><span>Reading now</span></button></li>
+    <li><button class="rail-item" data-rail="library">
       <span class="rail-beast" data-demon="reader"></span><span>Library</span></button></li>
     <li><button class="rail-item" data-rail="summon">
       <span class="rail-beast" data-demon="messenger"></span><span>Summon a book</span></button></li>
@@ -129,6 +147,14 @@
   </ul>
   <div class="rail-foot" aria-hidden="true"><span data-demon="wheelman"></span></div>
 </nav>
+
+<!-- ═══════════════════ READING NOW ═══════════════════ -->
+<section class="view" id="viewHome" data-view="home" hidden>
+  <div class="scroller" id="homeScroller">
+    <h1 class="screen-title">Reading now</h1>
+    <div id="homeBody"></div>
+  </div>
+</section>
 
 <!-- ═══════════════════ LIBRARY ═══════════════════ -->
 <section class="view" id="viewLibrary" data-view="library">
@@ -351,6 +377,21 @@
     <button class="btn btn-primary" id="dedEnter"></button>
   </div>
 </div>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections">
+  <button class="tab" data-rail="home" aria-current="page">
+    <svg class="ico" aria-hidden="true"><use href="#i-home"/></svg><span>Reading Now</span>
+  </button>
+  <button class="tab" data-rail="library">
+    <svg class="ico" aria-hidden="true"><use href="#i-books"/></svg><span>Library</span>
+  </button>
+  <button class="tab" data-rail="summon">
+    <svg class="ico" aria-hidden="true"><use href="#i-plus"/></svg><span>Summon</span>
+  </button>
+  <button class="tab" data-rail="workshop">
+    <svg class="ico" aria-hidden="true"><use href="#i-more"/></svg><span>More</span>
+  </button>
+</nav>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
