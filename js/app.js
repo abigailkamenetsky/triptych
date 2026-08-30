@@ -4,11 +4,12 @@
  * import and backup.
  */
 
-import { conjure, draw, summon as summonDemons, demonSrc, beastFor, DEMONS, PLATE_PIGMENTS } from './bestiary.js';
+import { summon as summonDemons, demonSrc, beastFor, DEMONS, PLATE_PIGMENTS } from './bestiary.js';
 import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
-import { Reader } from './reader.js';
+import { Reader, setPageTone } from './reader.js';
 import { Summon } from './summon.js';
+import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
 import { DEDICATION } from './dedication.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -316,6 +317,27 @@ function showDedication() {
   });
 }
 
+/* ══════════════ The border plate behind the page ══════════════ */
+async function applyFrame(bookId) {
+  const idx = await loadFrames();
+  const stage = $('#readerStage');
+  const shape = shapeFor();
+  // The stand-ins exist so the layout can be built before the art arrives.
+  // Until real plates are supplied, the composited frame stays in charge.
+  const plate = (bookId && !idx.synthetic) ? frameFor(bookId, shape) : null;
+
+  if (!plate) { root.dataset.frame = 'off'; setPageTone(null); return; }
+
+  const slice = sliceFor(shape);
+  root.dataset.frame = 'on';
+  root.style.setProperty('--reading-frame', `url("${frameSrc(plate.src)}")`);
+  root.style.setProperty('--plate-slice-x', `${(slice.x * 100).toFixed(2)}%`);
+  root.style.setProperty('--plate-slice-y', `${(slice.y * 100).toFixed(2)}%`);
+  root.style.setProperty('--frame-centre', plate.centre);
+  setPageTone(plate.centre);
+  void stage;
+}
+
 /* ══════════════ Reader ══════════════ */
 async function openBook(id) {
   const rec = await db.getBook(id);
@@ -327,6 +349,8 @@ async function openBook(id) {
   $('#readerTitle').textContent = rec.title;
   $('#pageLoading').hidden = false;
   setView('reader');
+
+  await applyFrame(rec.id);
 
   const reader = new Reader($('#viewer'));
   state.reader = reader;
@@ -353,6 +377,8 @@ function closeBook(pop = true) {
   state.reader?.destroy();
   state.reader = null;
   state.current = null;
+  root.dataset.frame = 'off';
+  setPageTone(null);
   $('#viewer').innerHTML = '';
   closeSheets();
   setView('library', false);
@@ -916,7 +942,17 @@ function wire() {
     if (state.view === 'reader' && $('#scrim').hidden) state.reader?.handleKey(e);
   });
 
-  window.addEventListener('resize', () => { if (state.view === 'reader') paintScrub(lastLoc.percent || 0); });
+  let frameTimer;
+  window.addEventListener('resize', () => {
+    if (state.view !== 'reader') return;
+    paintScrub(lastLoc.percent || 0);
+    clearTimeout(frameTimer);
+    frameTimer = setTimeout(async () => {
+      if (!state.current) return;
+      await applyFrame(state.current.id);
+      state.reader?.restyle();
+    }, 200);
+  });
 }
 
 function highlight(text, q) {
@@ -977,8 +1013,6 @@ async function boot() {
   // she had dismissed it.
   if ('serviceWorker' in navigator) registerWorker();
 
-  conjure(document);
-  draw(document);
   summonDemons(document);
   applyShell();
   wire();

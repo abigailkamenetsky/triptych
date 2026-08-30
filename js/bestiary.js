@@ -23,11 +23,6 @@ export const CUTOUTS = ['camel', 'porcupine', 'strawberry'];
 
 export const BEASTS = [...ROUNDELS, ...CUTOUTS];
 
-/* Painted bands, opaque, for friezes and columns. */
-export const BANDS = [
-  'pond', 'amphibia', 'crowd', 'instruments', 'fruit', 'strawberryMan', 'egg', 'treeFeet',
-];
-
 export const beastSrc = (name) => `assets/beasts/${name}.webp`;
 
 /* The cut figures, for anywhere a creature has to stand on its own. */
@@ -35,7 +30,6 @@ export const DEMONS = [
   'camel', 'drummer', 'messenger', 'porcupine', 'prince',
   'rabbit', 'reader', 'skater', 'strawberry', 'wheelman',
 ];
-export const bandSrc = (name) => `assets/bands/${name}.webp`;
 
 export function beast(name, cls = '') {
   return `<img class="beast ${cls}" src="${beastSrc(name)}" alt="" ` +
@@ -68,25 +62,6 @@ export const PLATE_PIGMENTS = [
 ];
 
 
-/* ── Ink drawings ─────────────────────────────────────────────
-   Alpha-only plates traced from the paintings by art/ink.py. The page uses
-   them as CSS masks, so a creature is drawn in exactly the ink the text is
-   set in and follows the theme without a second asset.
-   ───────────────────────────────────────────────────────────── */
-
-export const inkSrc = (name) => `assets/ink/${name}.webp`;
-
-let inkIndex = null;
-
-export async function loadInkIndex() {
-  if (inkIndex) return inkIndex;
-  try {
-    inkIndex = await (await fetch('assets/ink/index.json')).json();
-  } catch {
-    inkIndex = {};
-  }
-  return inkIndex;
-}
 
 /* Give every [data-ink] its mask and its proportions. */
 export async function draw(root = document) {

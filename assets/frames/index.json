@@ -1,0 +1,25 @@
+{
+ "landscape": [
+  {
+   "src": "landscape-1.webp",
+   "centre": "#cec1a2"
+  }
+ ],
+ "portrait": [
+  {
+   "src": "portrait-1.webp",
+   "centre": "#cec1a1"
+  }
+ ],
+ "inset": {
+  "landscape": {
+   "x": 0.125,
+   "y": 0.115
+  },
+  "portrait": {
+   "x": 0.115,
+   "y": 0.105
+  }
+ },
+ "synthetic": true
+}

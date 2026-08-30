@@ -2066,3 +2066,49 @@
   .frame-left,
   .frame-right { inset-block: var(--frame-h) var(--frame-h); }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   BORDER PLATES.
+   When the reading page has an illuminated plate behind it, that plate
+   carries its own border and its own creatures, so the composited frame and
+   the standing figures both stand down. The page is inset to the measured
+   clear middle and painted the tone sampled from it.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  /* Nine-slice, not a background image. `cover` crops a border off at any
+     aspect that is not the art's own, and stretching distorts the figures.
+     border-image keeps the corner demons at their true proportions and only
+     repeats the vine along each edge, at any screen shape. */
+  .plate { display: none; }
+  :root[data-frame="on"] .plate {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border: var(--plate-w) solid transparent;
+    border-image-source: var(--reading-frame);
+    border-image-slice: var(--plate-slice-y) var(--plate-slice-x) fill;
+    border-image-width: var(--plate-w);
+    border-image-repeat: round;
+  }
+  :root[data-frame="on"][data-view="reader"] .frame { display: none; }
+  :root[data-frame="on"] .marginalia { display: none; }
+
+  :root[data-frame="on"] .viewer-wrap {
+    inset: calc(var(--plate-w) + var(--sat-top) + 6px)
+           calc(var(--plate-w) + var(--sat-r) + 6px)
+           calc(var(--plate-w) + var(--sat-bot) + 22px)
+           calc(var(--plate-w) + var(--sat-l) + 6px);
+    box-shadow: none;
+  }
+  :root { --plate-w: clamp(26px, 7vw, 96px); }
+  @media (width >= 760px) { :root { --plate-w: clamp(54px, 8vw, 132px); } }
+  :root[data-frame="on"] #viewReader { background: var(--frame-centre, var(--page)); }
+
+  /* The chrome floats over the art rather than banding across it. */
+  :root[data-frame="on"] .chrome {
+    background: color-mix(in oklab, var(--frame-centre, var(--bg-raised)) 88%, transparent);
+  }
+}

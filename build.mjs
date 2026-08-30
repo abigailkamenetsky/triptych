@@ -33,7 +33,11 @@ const files = walk(ROOT).sort();
 // Keep the install payload lean. The 1024 icon is only ever read by the
 // manifest, and the seed books are fetched once on first run and then live in
 // IndexedDB, so caching them too would store every one of them twice.
-const precache = files.filter((f) => f !== 'icons/icon-1024.png' && !f.startsWith('seed/'));
+const DEAD = ['assets/beasts/'];   // kept on disk for art/cut.py, never served
+const precache = files.filter((f) =>
+  f !== 'icons/icon-1024.png' &&
+  !f.startsWith('seed/') &&
+  !DEAD.some((d) => f.startsWith(d)));
 
 const hash = createHash('sha256');
 for (const f of files) hash.update(f).update(readFileSync(join(ROOT, f)));

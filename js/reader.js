@@ -37,6 +37,11 @@ const PAGE_THEMES = {
 
 const MARGIN_EM = [1.1, 2.0, 3.2, 4.6];
 
+/* When a border plate is in use the page is painted the tone sampled from the
+   middle of that plate, flat, so the two meet without a seam. */
+let pageTone = null;
+export function setPageTone(hex) { pageTone = hex || null; }
+
 /* Reading grounds, painted inside the book document so the page and its
    texture always move together and never show a seam against the shell. */
 const PAGE_GROUND = {
@@ -52,7 +57,7 @@ function pageCss() {
   const side = MARGIN_EM[prefs.margin] ?? 2.0;
   const align = prefs.justify ? 'justify' : 'left';
 
-  const groundName = PAGE_GROUND[prefs.theme];
+  const groundName = pageTone ? null : PAGE_GROUND[prefs.theme];
   const ground = groundName
     ? `background-image: url(${new URL(`assets/ground/${groundName}.webp`, location.href).href}) !important;
        background-size: 1400px 1400px !important;
@@ -64,9 +69,9 @@ function pageCss() {
   return `
 ${fontFaceCss}
 html { -webkit-text-size-adjust: none; text-size-adjust: none; }
-html { background: ${t.bg} !important; }
+html { background: ${pageTone || t.bg} !important; }
 body {
-  background-color: ${t.bg} !important;
+  background-color: ${pageTone || t.bg} !important;
   ${ground}
   color: ${t.fg} !important;
   ${family}
