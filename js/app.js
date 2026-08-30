@@ -589,7 +589,10 @@ async function openBook(id, startAt) {
       $('#hlDelete').hidden = true;
       placePopover(sel.rect);
     })
-    .on('unselect', () => { if (!$('#hlPop').hidden && pendingSelection) hidePopover(); })
+    // No hiding on unselect: reaching for the popover clears the selection in
+    // the book, and acting on that would throw away what the button is for.
+    // It closes on a page turn, on a tap elsewhere, or once it has been used.
+    .on('unselect', () => {})
     .on('highlightTap', (h) => {
       pendingSelection = { cfi: h.cfi, text: h.text, rect: { left: window.innerWidth / 2 - 140, top: window.innerHeight / 2, width: 280, height: 0 } };
       $('#hlDelete').hidden = false;
@@ -632,6 +635,10 @@ function closeBook(pop = true) {
 let lastLoc = { cfi: '', percent: 0, chapter: '', page: 0, pages: 0 };
 
 function onRelocated(loc) {
+  // epub.js re-emits relocated as the layout settles and whenever an
+  // annotation is painted, so hiding on every one of them tore the popover
+  // away before a swatch could be tapped. Only a real page turn closes it.
+  if (loc.cfi !== lastLoc.cfi) hidePopover();
   lastLoc = loc;
   const pct = Math.round(loc.percent * 1000);
   const scrub = $('#scrubber');
@@ -1264,7 +1271,11 @@ function wire() {
     refreshBookmarkButton();
   });
 
-  // The highlight popover.
+  // The highlight popover. Swallow the press so the book keeps its selection.
+  const pop = $('#hlPop');
+  for (const type of ['mousedown', 'touchstart', 'pointerdown']) {
+    pop.addEventListener(type, (e) => e.preventDefault());
+  }
   for (const el of $$('[data-hl]')) el.addEventListener('click', () => saveHighlight(el.dataset.hl));
   $('#hlNote').addEventListener('click', () => pendingSelection && addNoteTo(pendingSelection.cfi));
   $('#hlCopy').addEventListener('click', async () => {

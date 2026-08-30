@@ -37,6 +37,40 @@ const PAGE_THEMES = {
 
 const MARGIN_EM = [1.1, 2.0, 3.2, 4.6];
 
+/* Wrap every text node the range touches in its own <mark>. A range that
+   spans elements cannot be surrounded in one piece, so it is done piecewise. */
+function wrapRange(range, cls, id) {
+  const doc = range.startContainer.ownerDocument;
+  const walker = doc.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) {
+    if (range.intersectsNode(n) && n.nodeValue && n.nodeValue.trim()) nodes.push(n);
+  }
+  if (!nodes.length && range.startContainer.nodeType === 3) nodes.push(range.startContainer);
+
+  for (const node of nodes) {
+    let from = 0;
+    let to = node.nodeValue.length;
+    if (node === range.startContainer) from = range.startOffset;
+    if (node === range.endContainer) to = range.endOffset;
+    if (to <= from) continue;
+    const piece = doc.createRange();
+    try {
+      piece.setStart(node, from);
+      piece.setEnd(node, to);
+      const mark = doc.createElement('mark');
+      mark.className = cls;
+      mark.setAttribute('data-hl', id);
+      piece.surroundContents(mark);
+    } catch {
+      // A node that cannot be surrounded is skipped rather than losing the rest.
+    }
+  }
+}
+
+const cssEscape = (s) => String(s).replace(/["\\]/g, '\\$&');
+
 export const HIGHLIGHT_FILL = {
   gold: '#c9a227',
   sage: '#6f8355',
@@ -112,6 +146,18 @@ img, svg, image, video { max-width: 100% !important; height: auto !important; }
 hr { border: 0; height: 1px; background: ${t.fg}; opacity: .25; margin: 1.6em 0; }
 blockquote { border-inline-start: 2px solid ${t.link}; padding-inline-start: .9em; opacity: .92; }
 table { max-width: 100% !important; }
+mark.dl-hl {
+  color: inherit !important;
+  background: transparent;
+  padding: 0;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+mark.dl-hl-gold  { background: rgba(201,162,39,.36) !important; }
+mark.dl-hl-sage  { background: rgba(111,131,85,.34) !important; }
+mark.dl-hl-lapis { background: rgba(58,90,140,.30) !important; }
+mark.dl-hl-rose  { background: rgba(168,52,31,.28) !important; }
 ${prefs.capitals ? `
 .${CAP_CLASS}::first-letter {
   float: left;
@@ -318,18 +364,29 @@ export class Reader {
     for (const h of this._highlights) this._paint(h);
   }
 
+  /* epub.js draws highlights as SVG rectangles over the page. It builds the
+     group and the colour correctly and then computes no rectangles for the
+     range, leaving an empty overlay. Wrapping the text itself is both simpler
+     and better behaved: it reflows with the column, survives a font change,
+     and needs no second coordinate system. */
   _paint(h) {
-    try {
-      this.rendition.annotations.remove(h.cfi, 'highlight');
-    } catch { /* not painted yet */ }
-    try {
-      this.rendition.annotations.add(
-        'highlight', h.cfi, {},
-        () => this.emit('highlightTap', h),
-        `dl-hl dl-hl-${h.colour || 'gold'}`,
-        { fill: HIGHLIGHT_FILL[h.colour] || HIGHLIGHT_FILL.gold, 'fill-opacity': '0.34', 'mix-blend-mode': 'multiply' },
-      );
-    } catch { /* the section is not loaded yet; it paints when it is */ }
+    for (const c of this.contents) {
+      if (!c.document) { this.contents.delete(c); continue; }
+      this._unwrap(c.document, h.cfi);
+      let range;
+      try { range = c.range(h.cfi); } catch { continue; }
+      if (!range) continue;
+      wrapRange(range, `dl-hl dl-hl-${h.colour || 'gold'}`, h.cfi);
+    }
+  }
+
+  _unwrap(doc, cfi) {
+    for (const m of doc.querySelectorAll(`mark[data-hl="${cssEscape(cfi)}"]`)) {
+      const parent = m.parentNode;
+      while (m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    }
   }
 
   addHighlight(h) {
@@ -339,7 +396,9 @@ export class Reader {
 
   removeHighlight(cfi) {
     this._highlights = (this._highlights || []).filter((x) => x.cfi !== cfi);
-    try { this.rendition.annotations.remove(cfi, 'highlight'); } catch { /* already gone */ }
+    for (const c of this.contents) {
+      if (c.document) this._unwrap(c.document, cfi);
+    }
   }
 
   _bindGestures(doc) {
