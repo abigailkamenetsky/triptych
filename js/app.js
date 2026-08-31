@@ -10,6 +10,7 @@ import * as db from './db.js';
 import { Reader, setPageTone, HIGHLIGHT_FILL } from './reader.js';
 import { Summon } from './summon.js';
 import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
+import * as catalogue from './catalogue.js';
 import { DEDICATION } from './dedication.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -561,6 +562,37 @@ async function applyFrame(bookId) {
   root.style.setProperty('--frame-centre', plate.centre);
   setPageTone(plate.centre);
   void stage;
+}
+
+/* ══════════════ Fetching a book the app is allowed to fetch ══════════════ */
+async function fetchFromCatalogue(entry, btn) {
+  if (!entry || !btn) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('is-working');
+
+  try {
+    const file = await catalogue.download(entry, (frac) => {
+      btn.textContent = `${Math.round(frac * 100)}%`;
+    });
+    btn.textContent = 'Shelving…';
+    const added = await importFiles([file], { quiet: true });
+    await renderHome();
+
+    if (added) {
+      btn.textContent = 'On the shelf';
+      btn.classList.add('is-done');
+      toast(`${entry.title} is on the shelf.`);
+    } else {
+      btn.textContent = 'Already there';
+      btn.classList.add('is-done');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.classList.remove('is-working');
+    btn.textContent = original;
+    toast(err?.message || 'That book would not come.', 4000);
+  }
 }
 
 /* ══════════════ Reader ══════════════ */
@@ -1223,6 +1255,8 @@ function wire() {
     onPickFile: () => pickFile(),
     toast,
     isActive: () => state.view === 'summon',
+    search: (q) => catalogue.search(q),
+    fetchBook: (entry, btn) => fetchFromCatalogue(entry, btn),
     stepper: (n) => {
       for (const li of $$('#stepper li')) {
         const s = Number(li.dataset.step);

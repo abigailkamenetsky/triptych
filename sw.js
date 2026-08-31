@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '3430807ffecc';
+const VERSION = 'aa6992d7609b';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -84,6 +84,7 @@ const PRECACHE = [
   'index.html',
   'js/app.js',
   'js/bestiary.js',
+  'js/catalogue.js',
   'js/db.js',
   'js/dedication.js',
   'js/frames.js',

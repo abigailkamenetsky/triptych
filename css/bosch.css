@@ -2607,3 +2607,78 @@
       0 12px 30px rgb(60 42 18 / .16);
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   THE FREE LIBRARY, searched inside the app.
+   ══════════════════════════════════════════════════════════════ */
+@layer summon {
+  .hunted { font-style: italic; color: var(--accent); }
+
+  .finding { display: flex; align-items: center; gap: 10px; margin-top: 16px;
+             font-family: var(--font-alt); font-size: 16px; font-style: italic; color: var(--fg-soft); }
+  .spin {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid color-mix(in oklab, var(--accent) 35%, transparent);
+    border-top-color: var(--accent);
+    animation: spin 800ms linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tiny-note {
+    margin-top: 10px;
+    font-family: var(--font-alt);
+    font-size: 14.5px;
+    font-style: italic;
+    line-height: 1.45;
+    color: var(--fg-faint);
+    text-wrap: pretty;
+  }
+
+  .finds { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .find {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 12px;
+    background: var(--bg-raised);
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 1px var(--rule);
+  }
+  .find-cover {
+    flex: none;
+    width: 46px;
+    aspect-ratio: 2 / 3;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--bg-sunk);
+    box-shadow: 0 1px 3px rgb(0 0 0 / .3);
+  }
+  .find-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .find-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .find-text b { font-family: var(--font-alt); font-size: 16px; font-weight: 600; line-height: 1.2; }
+  .find-text small { font-family: var(--font-alt); font-size: 13.5px; font-style: italic; color: var(--fg-faint); }
+  .find-text em {
+    margin-top: 3px;
+    font-family: var(--font-alt);
+    font-size: 13px;
+    font-style: normal;
+    line-height: 1.35;
+    color: var(--fg-faint);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .find-add {
+    flex: none;
+    min-height: 38px;
+    padding: 8px 16px;
+    font-size: 15px;
+    min-width: 78px;
+    font-variant-numeric: tabular-nums;
+  }
+  .find-add.is-working { background: var(--fg-faint); }
+  .find-add.is-done { background: var(--sage); }
+  .find-add:disabled { cursor: default; }
+}

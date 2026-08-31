@@ -127,6 +127,7 @@ export class Summon {
     const fn = [null, this.stepName, this.stepWhere, this.stepFetch, this.stepShelve][this.step];
     this.root.innerHTML = fn.call(this);
     this.bind();
+    if (this.step === 2) this.runSearch();
   }
 
   /* ── 1. The title ── */
@@ -147,9 +148,9 @@ export class Summon {
     </div>`;
   }
 
-  /* ── 2. Where to look ── */
+  /* ── 2. What the free catalogue has, in the app ── */
   stepWhere() {
-    const cards = Object.entries(SOURCES).map(([key, s]) => `
+    const cards = Object.entries(SOURCES).filter(([k]) => k !== 'standard').map(([key, s]) => `
       <a class="source" href="${s.url(this.title)}" target="_blank" rel="noopener noreferrer" data-source="${key}">
         <span class="source-mark" style="background:${s.pigment}">${s.mark}</span>
         <span class="source-text"><b>${esc(s.name)}</b><small>${s.blurb}</small></span>
@@ -158,18 +159,58 @@ export class Summon {
 
     return `
     <div class="panel">
-      <h2>Where shall we look?</h2>
-      <p>Hunting for <b>${esc(this.title)}</b>. Tap a place and it opens in Safari with the search already run.</p>
-      <div class="panel-form">${cards}</div>
-      <div class="aside-note">
-        <b>Anna's Archive is the one that has everything.</b> The two free libraries
-        below it are worth a look for anything published before about 1930, where the
-        typesetting is far better than a scan.
+      <h2>Looking for <span class="hunted">${esc(this.title)}</span></h2>
+      <div id="findResultsBox">
+        <p class="finding"><span class="spin" aria-hidden="true"></span> Searching the free library…</p>
       </div>
+
+      <p class="group-title" style="margin-top:30px">Not there? Look further afield</p>
+      <p class="tiny-note">
+        These open in Safari. They cannot hand the file back on their own, so you
+        download it there and come straight back.
+      </p>
+      <div class="panel-form">${cards}</div>
+
       <div class="btn-stack">
         <button class="linkish" data-go="1">Hunt for something else</button>
       </div>
     </div>`;
+  }
+
+  async runSearch() {
+    const box = this.root.querySelector('#findResultsBox');
+    if (!box) return;
+    try {
+      const found = await this.ctx.search(this.title);
+      if (!found.length) {
+        box.innerHTML = `<p class="tiny-note">Nothing in the free library under that name.
+          It may still be on Anna's Archive below.</p>`;
+        return;
+      }
+      box.innerHTML = `
+        <p class="tiny-note">${found.length} ${found.length === 1 ? 'book' : 'books'} the app can
+        fetch and shelve for you, with nothing to download by hand.</p>
+        <div class="finds">
+          ${found.slice(0, 12).map((b, i) => `
+            <div class="find" data-find="${i}">
+              <span class="find-cover">${b.cover ? `<img src="${esc(b.cover)}" alt="" loading="lazy">` : ''}</span>
+              <span class="find-text">
+                <b>${esc(b.title)}</b>
+                <small>${esc(b.author)}</small>
+                <em>${esc(b.summary.slice(0, 110))}${b.summary.length > 110 ? '…' : ''}</em>
+              </span>
+              <button class="btn btn-primary find-add" data-add="${i}">Add</button>
+            </div>`).join('')}
+        </div>`;
+      this.found = found;
+      for (const el of box.querySelectorAll('[data-add]')) {
+        el.addEventListener('click', () => this.ctx.fetchBook(this.found[+el.dataset.add], el));
+      }
+    } catch (err) {
+      box.innerHTML = `<p class="tiny-note">The free library could not be reached just now.
+        The places below still work.</p>`;
+      void err;
+    }
   }
 
   /* ── 3. The walkthrough ── */
