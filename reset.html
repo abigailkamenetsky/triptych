@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reset Triptych</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: radial-gradient(120% 90% at 50% 0%, #8f2d1e, #2a0c07 70%);
+    color: #ece0c6;
+    font-family: 'Iowan Old Style', Palatino, Georgia, serif;
+    line-height: 1.6;
+  }
+  .card {
+    width: min(460px, 100%);
+    padding: 30px 28px 26px;
+    background: rgb(22 17 12 / .82);
+    border: 1px solid #4a3a20;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgb(0 0 0 / .55);
+    text-align: center;
+  }
+  h1 { margin: 0 0 6px; font-size: 27px; font-weight: 500; letter-spacing: .01em; }
+  p { margin: 0 0 14px; font-size: 16.5px; color: #b8a684; text-wrap: pretty; }
+  ol { margin: 18px 0 0; padding: 0; list-style: none; text-align: left; font-size: 15.5px; }
+  li { padding: 9px 0 9px 30px; position: relative; color: #b8a684; border-top: 1px solid #3b2e1f; }
+  li::before {
+    content: "·"; position: absolute; left: 8px; top: 7px;
+    font-size: 22px; color: #7d6e55;
+  }
+  li.done { color: #ece0c6; }
+  li.done::before { content: "✓"; font-size: 15px; top: 9px; color: #7d9059; }
+  li.fail::before { content: "×"; color: #bb4028; }
+  a.go {
+    display: inline-block;
+    margin-top: 22px;
+    padding: 13px 26px;
+    background: #bb4028;
+    color: #f6edd8;
+    font-size: 17px;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  a.go[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: #cb9c2f; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Clearing the old copy</h1>
+  <p>
+    Triptych stores itself on your device so it works with no internet. That
+    stored copy can get stuck on an old version. This clears it and fetches
+    the newest one. Nothing in your library is touched.
+  </p>
+  <ol id="steps">
+    <li id="s1">Removing the stored worker</li>
+    <li id="s2">Emptying the stored files</li>
+    <li id="s3">Fetching the current version</li>
+  </ol>
+  <a class="go" id="go" href="./?fresh=1" aria-disabled="true">Working…</a>
+  <p style="margin-top:16px; font-size:14px; color:#7d6e55">
+    Build <code id="ver">…</code>
+  </p>
+</div>
+
+<script>
+  // Deliberately dependency free and outside the app. If the old worker is
+  // serving stale files, this page is the one thing that can still get through,
+  // because it was never in that worker's cache to begin with.
+  const mark = (id, ok) => {
+    const el = document.getElementById(id);
+    el.className = ok ? 'done' : 'fail';
+  };
+
+  (async () => {
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      mark('s1', true);
+    } catch { mark('s1', false); }
+
+    try {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      mark('s2', true);
+    } catch { mark('s2', false); }
+
+    let version = 'unknown';
+    try {
+      const res = await fetch('sw.js?bust=' + Date.now(), { cache: 'no-store' });
+      const text = await res.text();
+      version = (text.match(/VERSION = '([a-f0-9]+)'/) || [])[1] || 'unknown';
+      mark('s3', true);
+    } catch { mark('s3', false); }
+
+    document.getElementById('ver').textContent = version;
+    const go = document.getElementById('go');
+    go.textContent = 'Open Triptych';
+    go.setAttribute('aria-disabled', 'false');
+    go.href = './?fresh=' + Date.now();
+  })();
+</script>
+</body>
+</html>

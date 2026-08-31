@@ -34,10 +34,12 @@ const files = walk(ROOT).sort();
 // manifest, and the seed books are fetched once on first run and then live in
 // IndexedDB, so caching them too would store every one of them twice.
 const DEAD = ['assets/beasts/'];   // kept on disk for art/cut.py, never served
+const NEVER_CACHE = ['reset.html'];  // the escape hatch has to reach the network
 const precache = files.filter((f) =>
   f !== 'icons/icon-1024.png' &&
   !f.startsWith('seed/') &&
-  !DEAD.some((d) => f.startsWith(d)));
+  !DEAD.some((d) => f.startsWith(d)) &&
+  !NEVER_CACHE.includes(f));
 
 const hash = createHash('sha256');
 for (const f of files) hash.update(f).update(readFileSync(join(ROOT, f)));
@@ -102,6 +104,24 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
+    // The document itself goes to the network first, with the cache as the
+    // fallback. Answering navigations from the cache is what let a stale build
+    // serve itself indefinitely, and ignoreSearch meant even a cache-busting
+    // query came back stale.
+    if (req.mode === 'navigate') {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE);
+          cache.put('./index.html', fresh.clone());
+          return fresh;
+        }
+      } catch { /* offline: fall through to what is stored */ }
+      const shell = await caches.match('./index.html', { ignoreSearch: true })
+        || await caches.match('./', { ignoreSearch: true });
+      if (shell) return shell;
+    }
+
     const cached = await caches.match(req, { ignoreSearch: true });
     if (cached) return cached;
 

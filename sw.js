@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '37c8d622236a';
+const VERSION = '3430807ffecc';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -139,6 +139,24 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
+    // The document itself goes to the network first, with the cache as the
+    // fallback. Answering navigations from the cache is what let a stale build
+    // serve itself indefinitely, and ignoreSearch meant even a cache-busting
+    // query came back stale.
+    if (req.mode === 'navigate') {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) {
+          const cache = await caches.open(CACHE);
+          cache.put('./index.html', fresh.clone());
+          return fresh;
+        }
+      } catch { /* offline: fall through to what is stored */ }
+      const shell = await caches.match('./index.html', { ignoreSearch: true })
+        || await caches.match('./', { ignoreSearch: true });
+      if (shell) return shell;
+    }
+
     const cached = await caches.match(req, { ignoreSearch: true });
     if (cached) return cached;
 
