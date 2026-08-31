@@ -236,7 +236,9 @@ export class Summon {
       <ol class="walk">${steps}</ol>
       ${mirrors}
       <div class="btn-stack">
-        <a class="btn btn-primary btn-block" href="${s.url(this.title)}" target="_blank" rel="noopener noreferrer" data-source="${this.source || 'annas'}">
+        ${(this.source || 'annas') === 'annas' ? `
+        <button class="btn btn-primary btn-block btn-big" id="showCoach">Show me, step by step</button>` : ''}
+        <a class="btn btn-ghost btn-block" href="${s.url(this.title)}" target="_blank" rel="noopener noreferrer" data-source="${this.source || 'annas'}">
           Open ${esc(s.name)} again
         </a>
         <button class="btn btn-ghost btn-block" data-go="4">I have the file already</button>
@@ -306,5 +308,9 @@ export class Summon {
     }
 
     r.querySelector('#pickFile')?.addEventListener('click', () => this.ctx.onPickFile());
+    r.querySelector('#showCoach')?.addEventListener('click', () => {
+      this.away = true;
+      this.ctx.coach(SOURCES.annas.url(this.title));
+    });
   }
 }

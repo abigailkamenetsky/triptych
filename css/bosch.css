@@ -2682,3 +2682,111 @@
   .find-add.is-done { background: var(--sage); }
   .find-add:disabled { cursor: default; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   THE COACH.
+   Set for weak eyes: one instruction at a time, very large, high contrast,
+   with a picture of the screen and an arrow on the thing to tap. Sized so it
+   still works in Split View beside Safari on an iPad.
+   ══════════════════════════════════════════════════════════════ */
+@layer util {
+  .coach {
+    position: fixed;
+    inset: 0;
+    z-index: 75;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-raised);
+    padding-block: var(--sat-top) var(--sat-bot);
+    animation: fade 200ms var(--ease);
+
+    --diagram-bg: color-mix(in oklab, var(--bg) 70%, #fff);
+    --diagram-line: color-mix(in oklab, var(--fg) 55%, transparent);
+    --diagram-hi: color-mix(in oklab, var(--gold) 26%, var(--bg));
+    --diagram-edge: var(--accent);
+    --diagram-ink: var(--fg);
+  }
+  .coach[hidden] { display: none; }
+
+  .coach-top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px max(12px, var(--sat-r)) 8px max(12px, var(--sat-l));
+    border-bottom: 1px solid var(--rule);
+  }
+  .coach-count {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-alt);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--fg-faint);
+  }
+  .coach-top .glyph[aria-pressed="true"] { color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); }
+
+  .coach-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 3vh, 30px);
+    padding: clamp(18px, 4vw, 40px);
+    text-align: center;
+  }
+
+  .coach-art {
+    width: min(420px, 100%);
+    color: var(--accent);
+  }
+  .coach-art svg { width: 100%; height: auto; }
+  /* Nudges along its own axis, inside a group that is already positioned. */
+  .coach-arrow { animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes nudge {
+    0%, 100% { transform: translateX(-5px); }
+    50%      { transform: translateX(3px); }
+  }
+
+  /* Big. This is the whole point. */
+  .coach-title {
+    font-family: var(--font-alt);
+    font-size: clamp(27px, 6.5vw, 42px);
+    font-weight: 600;
+    line-height: 1.14;
+    color: var(--fg);
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .coach-text {
+    font-family: var(--font-alt);
+    font-size: clamp(19px, 4.2vw, 26px);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    max-width: 26ch;
+    text-wrap: pretty;
+  }
+
+  .coach-foot {
+    flex: none;
+    display: flex;
+    gap: 10px;
+    padding: 12px max(12px, var(--sat-r)) 14px max(12px, var(--sat-l));
+    border-top: 1px solid var(--rule);
+  }
+  .coach-nav {
+    flex: 1;
+    min-height: 58px;
+    font-size: 18px;
+  }
+  .coach-nav:disabled { opacity: .35; }
+  @media (width < 420px) {
+    .coach-foot { flex-wrap: wrap; }
+    #coachOpen { order: -1; flex-basis: 100%; }
+  }
+}

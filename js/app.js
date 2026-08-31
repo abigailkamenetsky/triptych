@@ -11,6 +11,7 @@ import { Reader, setPageTone, HIGHLIGHT_FILL } from './reader.js';
 import { Summon } from './summon.js';
 import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
 import * as catalogue from './catalogue.js';
+import { STEPS, speak, hush, canSpeak } from './coach.js';
 import { DEDICATION } from './dedication.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -562,6 +563,48 @@ async function applyFrame(bookId) {
   root.style.setProperty('--frame-centre', plate.centre);
   setPageTone(plate.centre);
   void stage;
+}
+
+/* ══════════════ The coach ══════════════ */
+const coach = { step: 0, url: '', speaking: false };
+
+function openCoach(url) {
+  coach.step = 0;
+  coach.url = url || '';
+  $('#coach').hidden = false;
+  paintCoach();
+}
+
+function closeCoach() {
+  hush();
+  $('#coach').hidden = true;
+}
+
+function paintCoach() {
+  const s = STEPS[coach.step];
+  if (!s) return;
+  $('#coachArt').innerHTML = s.art;
+  $('#coachTitle').textContent = s.title;
+  $('#coachText').textContent = s.body;
+  $('#coachCount').textContent = `Step ${coach.step + 1} of ${STEPS.length}`;
+  $('#coachBack').disabled = coach.step === 0;
+  $('#coachNext').textContent = coach.step === STEPS.length - 1 ? 'Bring the book in' : 'Next';
+  $('#coachOpen').href = coach.url || '#';
+  $('#coachOpen').hidden = !coach.url;
+  $('#coachSpeak').hidden = !canSpeak();
+  if (coach.speaking) speak(`${s.title}. ${s.say}`);
+}
+
+function stepCoach(by) {
+  const next = coach.step + by;
+  if (next < 0) return;
+  if (next >= STEPS.length) {
+    closeCoach();
+    pickFile();
+    return;
+  }
+  coach.step = next;
+  paintCoach();
 }
 
 /* ══════════════ Fetching a book the app is allowed to fetch ══════════════ */
@@ -1255,6 +1298,7 @@ function wire() {
     onPickFile: () => pickFile(),
     toast,
     isActive: () => state.view === 'summon',
+    coach: (url) => openCoach(url),
     search: (q) => catalogue.search(q),
     fetchBook: (entry, btn) => fetchFromCatalogue(entry, btn),
     stepper: (n) => {
@@ -1395,6 +1439,19 @@ function wire() {
   for (const b of $$('[data-close-sheet]')) b.addEventListener('click', closeSheets);
 
   // Install coach
+  // The step by step guide.
+  $('#coachClose').addEventListener('click', closeCoach);
+  $('#coachBack').addEventListener('click', () => stepCoach(-1));
+  $('#coachNext').addEventListener('click', () => stepCoach(1));
+  $('#coachSpeak').addEventListener('click', () => {
+    coach.speaking = !coach.speaking;
+    $('#coachSpeak').setAttribute('aria-pressed', String(coach.speaking));
+    if (coach.speaking) {
+      const s = STEPS[coach.step];
+      speak(`${s.title}. ${s.say}`);
+    } else hush();
+  });
+
   $('#dismissCoach').addEventListener('click', () => {
     $('#installCoach').hidden = true;
     localStorage.setItem('triptych.coached', '1');
