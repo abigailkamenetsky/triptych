@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '6da5cbc1c370';
+const VERSION = '37c8d622236a';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -97,6 +97,10 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Take over as soon as the new build is cached. Waiting for every tab to
+  // close means a stale build can serve itself for days, and the code that
+  // would have asked politely lives in the build the browser does not have.
+  self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     // Fetch each one on its own so a single miss cannot fail the whole install.
@@ -111,10 +115,19 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
+    let replaced = false;
     for (const key of await caches.keys()) {
-      if (key !== CACHE) await caches.delete(key);
+      if (key !== CACHE) { await caches.delete(key); replaced = true; }
     }
     await self.clients.claim();
+
+    // An old cache existed, so a page is running the previous build's scripts
+    // against this one's files. Reload it rather than leave it half and half.
+    // On a first install there is nothing to replace and nothing to reload.
+    if (!replaced) return;
+    for (const client of await self.clients.matchAll({ type: 'window' })) {
+      try { await client.navigate(client.url); } catch { /* it will catch up */ }
+    }
   })());
 });
 

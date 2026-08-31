@@ -1070,6 +1070,12 @@ async function buildWorkshop() {
       <button class="btn btn-ghost" id="showCoach">Show me</button>
     </div>`}
 
+    <p class="group-title">This copy</p>
+    <div class="row">
+      <span class="row-label"><b>Build</b><small id="buildStamp">Checking…</small></span>
+      <button class="btn btn-ghost" id="forceUpdate">Check now</button>
+    </div>
+
     <p class="group-title">About</p>
     <p class="empty-note" style="text-align:start;padding:8px 2px">
       Built for you. Every book lives on this device and nowhere else.
@@ -1080,6 +1086,23 @@ async function buildWorkshop() {
     const r = await db.requestPersistence();
     toast(r === 'granted' ? 'Promised. Your books are safe here.' : 'The device would not promise. Keep a backup.');
     buildWorkshop();
+  });
+  (async () => {
+    const stamp = $('#buildStamp', body);
+    if (!stamp) return;
+    try {
+      const keys = await caches.keys();
+      const v = (keys.find((k) => k.startsWith('triptych-')) || '').replace('triptych-', '');
+      stamp.textContent = v ? `${v}, kept for reading offline` : 'not yet stored for offline';
+    } catch { stamp.textContent = 'unknown'; }
+  })();
+  $('#forceUpdate', body)?.addEventListener('click', async () => {
+    toast('Looking for a newer version…');
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      await reg?.update();
+      setTimeout(() => location.reload(), 1200);
+    } catch { location.reload(); }
   });
   $('#doBackup', body).addEventListener('click', makeBackup);
   $('#doRestore', body).addEventListener('click', () => pickFile('.zip'));
