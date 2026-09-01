@@ -1,54 +1,72 @@
 {
- "landscape": [
-  {
-   "src": "landscape-1.webp",
-   "page": "landscape-1-page.webp",
-   "centre": "#e6d4aa"
-  },
-  {
-   "src": "landscape-2.webp",
-   "page": "landscape-2-page.webp",
-   "centre": "#e1ce9f"
-  },
-  {
-   "src": "landscape-3.webp",
-   "page": "landscape-3-page.webp",
-   "centre": "#e3d0a6"
-  },
-  {
-   "src": "landscape-4.webp",
-   "page": "landscape-4-page.webp",
-   "centre": "#e1cc9c"
-  }
- ],
+ "tall": [],
  "portrait": [
   {
    "src": "portrait-1.webp",
    "page": "portrait-1-page.webp",
-   "centre": "#ebd9ac"
+   "centre": "#ebd9ac",
+   "aspect": 0.75
   },
   {
    "src": "portrait-2.webp",
    "page": "portrait-2-page.webp",
-   "centre": "#e7d5a8"
+   "centre": "#e7d5a8",
+   "aspect": 0.75
   },
   {
    "src": "portrait-3.webp",
    "page": "portrait-3-page.webp",
-   "centre": "#e5d3aa"
+   "centre": "#e5d3aa",
+   "aspect": 0.75
   },
   {
    "src": "portrait-4.webp",
    "page": "portrait-4-page.webp",
-   "centre": "#e6d2a6"
+   "centre": "#e6d2a6",
+   "aspect": 0.75
   }
  ],
+ "landscape": [
+  {
+   "src": "landscape-1.webp",
+   "page": "landscape-1-page.webp",
+   "centre": "#e6d4aa",
+   "aspect": 1.3333
+  },
+  {
+   "src": "landscape-2.webp",
+   "page": "landscape-2-page.webp",
+   "centre": "#e1ce9f",
+   "aspect": 1.3333
+  },
+  {
+   "src": "landscape-3.webp",
+   "page": "landscape-3-page.webp",
+   "centre": "#e3d0a6",
+   "aspect": 1.3333
+  },
+  {
+   "src": "landscape-4.webp",
+   "page": "landscape-4-page.webp",
+   "centre": "#e1cc9c",
+   "aspect": 1.3333
+  }
+ ],
+ "wide": [],
  "inset": {
-  "landscape": {
+  "tall": {
    "x": 0.2,
    "y": 0.2
   },
   "portrait": {
+   "x": 0.2,
+   "y": 0.2
+  },
+  "landscape": {
+   "x": 0.2,
+   "y": 0.2
+  },
+  "wide": {
    "x": 0.2,
    "y": 0.2
   }

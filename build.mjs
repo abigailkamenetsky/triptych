@@ -35,11 +35,13 @@ const files = walk(ROOT).sort();
 // IndexedDB, so caching them too would store every one of them twice.
 const DEAD = ['assets/beasts/'];   // kept on disk for art/cut.py, never served
 const NEVER_CACHE = ['reset.html'];  // the escape hatch has to reach the network
+const LAZY = ['icons/splash/'];      // iOS reads these at launch, not the app
 const precache = files.filter((f) =>
   f !== 'icons/icon-1024.png' &&
   !f.startsWith('seed/') &&
   !DEAD.some((d) => f.startsWith(d)) &&
-  !NEVER_CACHE.includes(f));
+  !NEVER_CACHE.includes(f) &&
+  !LAZY.some((d) => f.startsWith(d)));
 
 const hash = createHash('sha256');
 for (const f of files) hash.update(f).update(readFileSync(join(ROOT, f)));

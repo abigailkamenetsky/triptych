@@ -8,8 +8,8 @@
  * is no rectangle where the reader's page meets the art.
  */
 
-const FALLBACK_INSET = { landscape: { x: 0.125, y: 0.115 }, portrait: { x: 0.115, y: 0.105 } };
-const ASPECT = { landscape: 1800 / 1350, portrait: 1350 / 1800 };
+const FALLBACK_INSET = { landscape: { x: 0.20, y: 0.20 }, portrait: { x: 0.20, y: 0.20 } };
+const BUCKETS = ['tall', 'portrait', 'landscape', 'wide'];
 
 let index = null;
 
@@ -23,8 +23,22 @@ export async function loadFrames() {
   return index;
 }
 
-export const shapeFor = (w = window.innerWidth, h = window.innerHeight) =>
-  (w >= h ? 'landscape' : 'portrait');
+/* Pick the plate drawn closest to the shape of the screen. Stretching a plate
+   into a shape it was not drawn for is what pulls the creatures about, so the
+   less the app has to stretch, the better it looks. */
+export function shapeFor(w = window.innerWidth, h = window.innerHeight) {
+  const want = w / h;
+  let best = null;
+  let bestGap = Infinity;
+  for (const name of BUCKETS) {
+    const list = index?.[name];
+    if (!list?.length) continue;
+    const have = list[0].aspect || (name === 'landscape' ? 1.333 : 0.75);
+    const gap = Math.abs(Math.log(want / have));      // ratios, not differences
+    if (gap < bestGap) { bestGap = gap; best = name; }
+  }
+  return best || (w >= h ? 'landscape' : 'portrait');
+}
 
 /* A stable frame per book, so a given title always opens in the same border. */
 export function frameFor(seed, shape) {
@@ -42,7 +56,16 @@ export function frameFor(seed, shape) {
    border-image-slice, which needs the figure in the image's own coordinates
    rather than the screen's. */
 export function sliceFor(shape) {
-  return index?.inset?.[shape] || FALLBACK_INSET[shape];
+  return index?.inset?.[shape] || FALLBACK_INSET[shape] || FALLBACK_INSET.portrait;
+}
+
+/* How far the chosen plate has to be pulled to fill the screen. Anything past
+   about a fifth starts to show on the figures. */
+export function stretchOf(shape, w = window.innerWidth, h = window.innerHeight) {
+  const list = index?.[shape];
+  const have = list?.[0]?.aspect;
+  if (!have) return 0;
+  return Math.abs((w / h) / have - 1);
 }
 
 /* Kept for anything that still wants the on-screen inset in pixels. */

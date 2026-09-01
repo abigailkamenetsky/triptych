@@ -2875,3 +2875,18 @@
     .aloud-speed { display: none; }
   }
 }
+
+
+@layer wide {
+  /* When the nearest plate is still a long way from the screen's shape,
+     showing it whole on its own paper beats pulling every creature 60 percent
+     out of true. The surround is the tone sampled from the plate, so the join
+     does not read as a letterbox. */
+  :root[data-frame="on"][data-plate-fit="contain"] .plate {
+    background-size: contain;
+    background-position: center top;
+  }
+  :root[data-frame="on"][data-plate-fit="contain"] #viewReader {
+    background: var(--frame-centre, var(--page));
+  }
+}

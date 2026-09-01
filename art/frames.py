@@ -16,6 +16,7 @@ edge bands, so the layout can be built and tested before the real art lands.
 """
 
 import os, glob, json
+import numpy as np
 from PIL import Image, ImageFilter
 
 Image.MAX_IMAGE_PIXELS = None
@@ -26,13 +27,23 @@ EDGE = os.path.join(ROOT, 'assets', 'edge')
 GROUND = os.path.join(ROOT, 'assets', 'ground')
 OUT = os.path.join(ROOT, 'assets', 'frames')
 
-# The two shapes the reader asks for. Landscape is an iPad held sideways,
-# portrait is a phone or an iPad held upright.
-SHAPES = {'landscape': (1800, 1350), 'portrait': (1350, 1800)}
+# Art is kept at the shape it was drawn. Stretching a plate to a screen it was
+# not drawn for pulls every creature out of proportion, and rebuilding it by
+# repeating a band of vine leaves a mechanical stripe down the edge, which is
+# worse. So each plate is filed under the shape it actually is, and the reader
+# picks whichever is nearest to the screen in front of it.
+BUCKETS = [
+    ('tall',      0.00, 0.60, (1240, 2560)),   # a phone held upright
+    ('portrait',  0.60, 0.95, (1350, 1800)),   # an iPad held upright
+    ('landscape', 1.05, 1.55, (1800, 1350)),   # an iPad on its side
+    ('wide',      1.55, 9.00, (2000, 1150)),   # a desktop window
+]
+SHAPES = {b[0]: b[3] for b in BUCKETS}
+
 
 # How far in from each edge the border art stops and the page begins. Measured
 # off the supplied art; the reader insets its text by this much.
-INSET = {'landscape': {'x': 0.20, 'y': 0.20}, 'portrait': {'x': 0.20, 'y': 0.20}}
+INSET = {name: {'x': 0.20, 'y': 0.20} for name, *_ in BUCKETS}
 
 # Where the reader's page sits on the plate. The page background is cut from
 # exactly this box, so the paper under the text is the plate's own paper and
@@ -84,12 +95,20 @@ def synth(shape):
     return page
 
 
+def bucket_for(im):
+    a = im.width / im.height
+    for name, lo, hi, size in BUCKETS:
+        if lo <= a < hi:
+            return name, size
+    return ('portrait', SHAPES['portrait'])
+
+
 def centre_colour(im, shape):
     """The tone of the clear middle, so the text page can match it exactly.
 
     The reader draws its own page inside the border, and any difference in tone
     shows as a rectangle. Sampling the art removes the seam."""
-    ins = INSET[shape]
+    ins = INSET.get(shape, INSET['portrait'])
     l = int(im.width * (ins['x'] + 0.06))
     r = int(im.width * (1 - ins['x'] - 0.06))
     t = int(im.height * (ins['y'] + 0.06))
@@ -122,42 +141,39 @@ if __name__ == '__main__':
         os.remove(f)
 
     files, source = supplied()
-    index = {'landscape': [], 'portrait': [], 'inset': INSET, 'pageBox': PAGE_BOX, 'synthetic': not files}
+    index = {name: [] for name, *_ in BUCKETS}
+    index.update({'inset': INSET, 'pageBox': PAGE_BOX, 'synthetic': not files})
     total = 0
 
     if files:
-        counts = {'landscape': 0, 'portrait': 0}
+        counts = {}
         for f in files:
             im = Image.open(f).convert('RGB')
-            shape = 'landscape' if im.width >= im.height else 'portrait'
-            counts[shape] += 1
-            out = fit_cover(im, SHAPES[shape])
+            shape, size = bucket_for(im)
+            counts[shape] = counts.get(shape, 0) + 1
+            out = fit_cover(im, size)
             name, sz, page = write(out, shape, counts[shape])
-            index[shape].append({'src': name, 'page': page, 'centre': centre_colour(out, shape)})
+            index.setdefault(shape, []).append({
+                'src': name, 'page': page,
+                'centre': centre_colour(out, shape),
+                'aspect': round(size[0] / size[1], 4),
+            })
             total += sz
-            print(f'  {os.path.basename(f):38} -> {name:16} {out.width}x{out.height} '
-                  f'{sz/1024:6.0f} KB  centre {index[shape][-1]["centre"]}')
-        # A shape with no art borrows the other, cropped. Better than none.
-        for shape in ('landscape', 'portrait'):
-            if not index[shape]:
-                other = 'portrait' if shape == 'landscape' else 'landscape'
-                src = Image.open(os.path.join(OUT, index[other][0]['src'])).convert('RGB')
-                out = fit_cover(src, SHAPES[shape])
-                name, sz, page = write(out, shape, 1)
-                index[shape].append({'src': name, 'page': page, 'centre': centre_colour(out, shape)})
-                total += sz
-                print(f'  (borrowed for {shape}) -> {name}')
+            print(f'  {os.path.basename(f)[:34]:34} -> {name:22} {out.width}x{out.height} '
+                  f'{sz/1024:6.0f} KB  {shape}')
     else:
         print('  nothing in art/supplied/ or art/generated/, using stand-ins')
-        for shape in SHAPES:
+        for shape in ('portrait', 'landscape'):
             im = synth(shape)
             name, sz, page = write(im, shape, 1)
-            index[shape].append({'src': name, 'page': page, 'centre': centre_colour(im, shape)})
+            index[shape].append({'src': name, 'page': page, 'centre': centre_colour(im, shape),
+                                 'aspect': round(SHAPES[shape][0] / SHAPES[shape][1], 4)})
             total += sz
             print(f'  synthetic {shape:10} -> {name} {sz/1024:6.0f} KB')
 
     with open(os.path.join(OUT, 'index.json'), 'w') as fh:
         json.dump(index, fh, indent=1)
 
-    print(f'\n{len(index["landscape"])} landscape, {len(index["portrait"])} portrait, {total/1024:.0f} KB total')
+    have = ', '.join(f'{len(index[n])} {n}' for n, *_ in BUCKETS if index.get(n))
+    print(f'\n{have}, {total/1024:.0f} KB total')
     print('synthetic stand-ins' if index['synthetic'] else f'using art from {os.path.relpath(source, ROOT)}/')

@@ -9,7 +9,7 @@ import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
 import { Reader, setPageTone, HIGHLIGHT_FILL } from './reader.js';
 import { Summon } from './summon.js';
-import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
+import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc, stretchOf } from './frames.js';
 import * as catalogue from './catalogue.js';
 import { STEPS, speak, hush, canSpeak } from './coach.js';
 import { DEDICATION } from './dedication.js';
@@ -552,6 +552,11 @@ async function applyFrame(bookId) {
   if (!plate) { root.dataset.frame = 'off'; setPageTone(null); return; }
 
   const slice = sliceFor(shape);
+  // A plate close to the screen's shape is drawn edge to edge. Only a wild
+  // mismatch is contained instead. Showing a 3:4 plate whole on a phone leaves
+  // the border stopping two thirds down the page, which reads as broken, so
+  // moderate stretch wins until art of the right shape exists.
+  root.dataset.plateFit = stretchOf(shape) > 0.55 ? 'contain' : 'fill';
   root.dataset.frame = 'on';
   root.style.setProperty('--reading-frame', `url("${frameSrc(plate.src)}")`);
   root.style.setProperty('--plate-slice-x', `${(slice.x * 100).toFixed(2)}%`);
