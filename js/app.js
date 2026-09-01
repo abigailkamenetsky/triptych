@@ -309,11 +309,11 @@ async function seedFirstRun() {
 }
 
 /* ══════════════ The frontispiece ══════════════ */
-function showDedication() {
-  // The card is meant to be seen once, so proofing it would ordinarily cost
-  // the one launch it exists for. `?dedication` shows it again and, because
-  // that is a preview, leaves the real first launch unspent.
-  const preview = new URLSearchParams(location.search).has('dedication');
+function showDedication({ again = false } = {}) {
+  // The card is meant to be seen once. Reopening it from the rail, or with
+  // `?dedication`, leaves the flag alone, so the first launch is never spent
+  // by looking and the card is never lost by having looked.
+  const preview = again || new URLSearchParams(location.search).has('dedication');
   if (!preview && localStorage.getItem('triptych.dedicated') === '1') return Promise.resolve();
   const d = DEDICATION;
   if (!d?.lines?.length) { localStorage.setItem('triptych.dedicated', '1'); return Promise.resolve(); }
@@ -323,7 +323,9 @@ function showDedication() {
   $('#dedSign').textContent = d.signature || '';
   $('#dedDate').textContent = d.date || '';
   const enter = $('#dedEnter');
-  enter.textContent = d.cta || 'Begin';
+  // On the first launch the button opens the app. On a re-read there is
+  // nothing to open, so it says what it actually does.
+  enter.textContent = again ? 'Back to the shelf' : (d.cta || 'Begin');
 
   const card = $('#dedication');
   card.hidden = false;
@@ -1179,6 +1181,12 @@ async function buildWorkshop() {
       <button class="btn btn-ghost btn-block" id="doRestore">Restore from a backup</button>
     </div>
 
+    <p class="group-title">The first page</p>
+    <div class="row">
+      <span class="row-label"><b>Read the dedication again</b><small>The card that was waiting the first time you opened Triptych.</small></span>
+      <button class="btn btn-ghost" id="showDed">Read</button>
+    </div>
+
     <p class="group-title">The shelf</p>
     <div class="row">
       <span class="row-label"><b>Order the books by</b><small>${sortLabel()}</small></span>
@@ -1207,6 +1215,11 @@ async function buildWorkshop() {
       Built for you. Every book lives on this device and nowhere else.
       Nothing is uploaded, nothing is tracked, and it works with no internet at all.
     </p>`;
+
+  $('#showDed', body)?.addEventListener('click', async () => {
+    closeSheets();
+    await showDedication({ again: true });
+  });
 
   $('#askPersist', body)?.addEventListener('click', async () => {
     const r = await db.requestPersistence();
@@ -1372,6 +1385,7 @@ function wire() {
 
   goTo = async (to) => {
     if (to === 'workshop') { await buildWorkshop(); openSheet('#sheetPrefs'); return; }
+    if (to === 'dedication') { await showDedication({ again: true }); return; }
     if (to === 'summon') { openSummon(); return; }
     if (to === 'home') { await renderHome(); setView('home'); return; }
     if (to === 'library') { await renderShelf(); setView('library'); return; }
