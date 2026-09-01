@@ -1252,7 +1252,7 @@ async function buildWorkshop() {
     buildWorkshop();
   });
   $('#startEdit', body).addEventListener('click', () => { closeSheets(); setEditing(true); });
-  $('#showCoach', body)?.addEventListener('click', () => { closeSheets(); $('#installCoach').hidden = false; });
+  $('#showCoach', body)?.addEventListener('click', () => { closeSheets(); placeShareHint(); $('#installCoach').hidden = false; });
 }
 
 const sortLabel = () => ({
@@ -1346,7 +1346,18 @@ const isStandalone = () => window.matchMedia('(display-mode: standalone)').match
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
+/* Safari puts its toolbar at the bottom on a phone and along the top on an
+   iPad. Telling her to look at the wrong end of the screen is the whole
+   difference between installing the app and giving up on it. */
+function placeShareHint() {
+  const el = $('#shareWhere');
+  if (!el) return;
+  const pad = window.matchMedia('(min-width: 760px)').matches;
+  el.textContent = pad ? 'at the top right of Safari' : 'at the bottom of Safari';
+}
+
 function maybeCoach() {
+  placeShareHint();
   if (isStandalone()) return;
   if (!isIOS()) return;
   if (localStorage.getItem('triptych.coached') === '1') return;
