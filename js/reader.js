@@ -169,9 +169,35 @@ h1, h2, h3, h4, h5, h6 {
   text-align: left;
   -webkit-hyphens: none; hyphens: none;
   text-wrap: balance;
+  /* Publishers set chapter spacing for a printed page: this book puts 115px
+     under its chapter number, which on a phone is half the screen before a
+     word is read. Cap it at something a screen can afford. */
+  margin-block: 0.85em 0.6em !important;
+  padding-block: 0 !important;
 }
+
+/* Calibre inserts a spacer div at the head of every section. */
+body > *:first-child { margin-block-start: 0 !important; }
 a, a:visited { color: ${t.link} !important; text-decoration-thickness: 1px; text-underline-offset: 2px; }
-img, svg, image, video { max-width: 100% !important; height: auto !important; }
+
+/* Publishers style the opening words of a chapter with an inline span, often
+   in their own sans face and a grey of their choosing. Left alone it sits in
+   the middle of the page in a different typeface to everything around it.
+   Take the family and the colour; leave small caps, spacing and weight, which
+   are deliberate. */
+span, em, i, b, strong, cite, small, sub, sup {
+  font-family: inherit !important;
+  color: inherit !important;
+}
+
+/* A full page plate has to fit the page. Height is what runs it off the
+   bottom, and only width was ever constrained. */
+img, svg, image, video {
+  max-width: 100% !important;
+  max-height: 88vh !important;
+  height: auto !important;
+  object-fit: contain;
+}
 ::selection { background: ${t.sel}; }
 hr { border: 0; height: 1px; background: ${t.fg}; opacity: .25; margin: 1.6em 0; }
 blockquote { border-inline-start: 2px solid ${t.link}; padding-inline-start: .9em; opacity: .92; }
