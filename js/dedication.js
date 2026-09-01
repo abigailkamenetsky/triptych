@@ -17,9 +17,9 @@ export const DEDICATION = {
 
   /* Each string is its own paragraph. Two or three reads best. */
   lines: [
-    'Every book you have ever wanted is somewhere out there in the dark, and getting to it should never have been the hard part.',
+    'Thank you so much for being my mom. For all the reading you did to me, and all the reading you taught me, and for never once telling me a book was too long.',
     'So here is a library that is only yours. It lives on your iPad, it works with no internet, and nothing in it is watching you read.',
-    'Fill it with whatever you like.',
+    'Fill it with whatever you like. Happy birthday.',
   ],
 
   /* Signed, at the foot of the card. Leave as an empty string to omit. */
