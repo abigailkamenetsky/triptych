@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = 'aff533834a75';
+const VERSION = '5d0fb561a682';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [
@@ -93,7 +93,6 @@ const PRECACHE = [
   'js/reader.js',
   'js/summon.js',
   'manifest.webmanifest',
-  'tools/seed.mjs',
   'vendor/epub.min.js',
   'vendor/jszip.min.js',
 ];

@@ -71,6 +71,25 @@ function wrapRange(range, cls, id) {
 
 const cssEscape = (s) => String(s).replace(/["\\]/g, '\\$&');
 
+/* Finding the paragraphs of a book.
+ *
+ * Standard Ebooks and most publisher EPUBs use <p>. Calibre conversions, which
+ * is what almost anything from a shadow library will be, use <div> instead and
+ * contain no <p> at all. Looking only for <p> means the drop capital never
+ * appears and reading aloud finds nothing to say, silently, on exactly the
+ * books she is most likely to bring in.
+ *
+ * So: take any block that holds text and contains no smaller block inside it.
+ */
+const BLOCK_SEL = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, dd, div, section, article';
+
+export function blockElements(doc) {
+  if (!doc) return [];
+  return [...doc.querySelectorAll(BLOCK_SEL)]
+    .filter((el) => !el.querySelector(BLOCK_SEL))
+    .filter((el) => (el.textContent || '').trim().length > 1);
+}
+
 export const HIGHLIGHT_FILL = {
   gold: '#c9a227',
   sage: '#6f8355',
@@ -169,6 +188,11 @@ mark.dl-hl-gold  { background: rgba(201,162,39,.36) !important; }
 mark.dl-hl-sage  { background: rgba(111,131,85,.34) !important; }
 mark.dl-hl-lapis { background: rgba(58,90,140,.30) !important; }
 mark.dl-hl-rose  { background: rgba(168,52,31,.28) !important; }
+.dl-speaking {
+  background: rgba(201,162,39,.26) !important;
+  box-shadow: -0.35em 0 0 rgba(201,162,39,.26), 0.35em 0 0 rgba(201,162,39,.26) !important;
+  border-radius: 2px;
+}
 ${prefs.capitals ? `
 .${CAP_CLASS}::first-letter {
   float: left;
@@ -197,6 +221,8 @@ export class Reader {
     this.handlers = {};
     this._ro = null;
     this._highlights = [];
+    this._reading = false;
+    this._utterance = null;
   }
 
   on(name, fn) { this.handlers[name] = fn; return this; }
@@ -315,7 +341,7 @@ export class Reader {
   _markFirstParagraph(doc) {
     if (!prefs.capitals) return;
     for (const p of doc.querySelectorAll(`.${CAP_CLASS}`)) p.classList.remove(CAP_CLASS);
-    const candidates = doc.querySelectorAll('p');
+    const candidates = blockElements(doc);
     for (const p of candidates) {
       const text = (p.textContent || '').trim();
       // Skip stubs and anything that opens with punctuation or a numeral.
@@ -366,6 +392,169 @@ export class Reader {
       try { (c.window || c.document?.defaultView)?.getSelection()?.removeAllRanges(); } catch { /* gone */ }
     }
   }
+
+  /* ── Reading aloud ──────────────────────────────────────────
+     Paragraph by paragraph rather than page by page. Each block is brought on
+     screen before it is spoken, so what she hears is always what is in front
+     of her, and the page turns itself as the voice moves on.
+     ─────────────────────────────────────────────────────────── */
+
+  _blocks(contents) {
+    return blockElements(contents?.document).map((el) => ({
+      el,
+      contents,
+      text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
+    }));
+  }
+
+  _currentBlocks() {
+    const live = [...this.contents].filter((c) => c.document);
+    for (const c of live) {
+      const blocks = this._blocks(c);
+      if (blocks.length) return blocks;
+    }
+    return [];
+  }
+
+  /* Where to begin: the first block at or after what is on screen. */
+  _startIndex(blocks) {
+    const doc = blocks[0]?.contents?.document;
+    if (!doc) return 0;
+    const view = doc.documentElement.clientWidth || 0;
+    for (let i = 0; i < blocks.length; i++) {
+      const r = blocks[i].el.getBoundingClientRect();
+      if (r.width || r.height) {
+        // In a paginated column, anything on this page starts at x >= 0.
+        if (r.left >= -4 && (!view || r.left < view * 1.5)) return i;
+      }
+    }
+    return 0;
+  }
+
+  /* iOS often reports no voices until shortly after the first call, and a
+     voiceless engine fails every utterance instantly. */
+  async _voicesReady() {
+    if (!window.speechSynthesis) return false;
+    if (speechSynthesis.getVoices().length) return true;
+    return new Promise((resolve) => {
+      const done = setTimeout(() => resolve(speechSynthesis.getVoices().length > 0), 1600);
+      speechSynthesis.addEventListener('voiceschanged', () => {
+        clearTimeout(done);
+        resolve(true);
+      }, { once: true });
+    });
+  }
+
+  async readAloud({ rate = 0.95, onBlock, onEnd, onFail } = {}) {
+    if (!window.speechSynthesis) return false;
+    this.stopReading();
+    await this._voicesReady();
+    this._reading = true;
+    let fails = 0;
+
+    let blocks = this._currentBlocks();
+    let i = this._startIndex(blocks);
+
+    const clearMark = () => {
+      for (const c of this.contents) {
+        if (!c.document) continue;
+        for (const el of c.document.querySelectorAll('.dl-speaking')) el.classList.remove('dl-speaking');
+      }
+    };
+
+    const sayNext = async () => {
+      if (!this._reading) return;
+
+      if (i >= blocks.length) {
+        // Out of text here. Keep turning until something has words in it: a
+        // cover, a title page and a copyright page in a row are perfectly
+        // normal, and stopping at the first empty one means a book opened at
+        // the beginning never starts reading at all.
+        clearMark();
+        let advanced = false;
+        for (let tries = 0; tries < 14 && this._reading; tries++) {
+          const before = this.location?.start?.cfi;
+          await this.next();
+          await new Promise((r2) => setTimeout(r2, 550));
+          if (this.location?.start?.cfi === before) break;   // the end
+          blocks = this._currentBlocks();
+          i = 0;
+          if (blocks.length) { advanced = true; break; }
+        }
+        if (!advanced) {
+          this._reading = false;
+          onEnd?.();
+          return;
+        }
+      }
+
+      const block = blocks[i];
+      i += 1;
+      if (!block?.text) { sayNext(); return; }
+
+      // Bring it on screen before speaking it.
+      try {
+        const cfi = block.contents.cfiFromNode(block.el);
+        if (cfi && !this._onScreen(block.el)) await this.rendition.display(cfi);
+      } catch { /* stay where we are */ }
+
+      clearMark();
+      block.el.classList.add('dl-speaking');
+      onBlock?.(block.text);
+
+      const u = new SpeechSynthesisUtterance(block.text);
+      u.rate = rate;
+      // Never continue synchronously from a handler. An engine with no voice
+      // fails every utterance the instant it is spoken, and calling on from
+      // inside onerror recurses until the stack gives out.
+      u.onend = () => {
+        fails = 0;
+        if (this._reading) setTimeout(sayNext, 0);
+      };
+      u.onerror = () => {
+        fails += 1;
+        if (fails >= 3) {
+          this._reading = false;
+          this.stopReading();
+          onFail?.();
+          return;
+        }
+        if (this._reading) setTimeout(sayNext, 150);
+      };
+      this._utterance = u;
+      speechSynthesis.speak(u);
+    };
+
+    sayNext();
+    return true;
+  }
+
+  _onScreen(el) {
+    const doc = el.ownerDocument;
+    const w = doc.documentElement.clientWidth || 0;
+    const r = el.getBoundingClientRect();
+    return r.left >= -4 && r.left < (w || 1e9);
+  }
+
+  pauseReading() {
+    try { speechSynthesis.pause(); } catch { /* nothing speaking */ }
+  }
+
+  resumeReading() {
+    try { speechSynthesis.resume(); } catch { /* nothing paused */ }
+  }
+
+  stopReading() {
+    this._reading = false;
+    this._utterance = null;
+    try { speechSynthesis.cancel(); } catch { /* nothing speaking */ }
+    for (const c of this.contents) {
+      if (!c.document) continue;
+      for (const el of c.document.querySelectorAll('.dl-speaking')) el.classList.remove('dl-speaking');
+    }
+  }
+
+  get isReading() { return !!this._reading; }
 
   /* ── Highlights ── */
 
@@ -625,6 +814,7 @@ export class Reader {
   }
 
   destroy() {
+    this.stopReading();
     try { this._ro?.disconnect(); } catch { /* nothing observed */ }
     try { this.rendition?.destroy(); } catch { /* already gone */ }
     try { this.book?.destroy(); } catch { /* already gone */ }

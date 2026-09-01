@@ -565,6 +565,47 @@ async function applyFrame(bookId) {
   void stage;
 }
 
+/* ══════════════ Reading the book aloud ══════════════ */
+function aloudRateLabel() {
+  $('#aloudRate').textContent = `${(prefs.speech / 100).toFixed(1)}×`;
+}
+
+async function startAloud() {
+  if (!state.reader) return;
+  if (!window.speechSynthesis) { toast('This device cannot read aloud.', 3500); return; }
+
+  $('#aloudBar').hidden = false;
+  $('#btnAloud').setAttribute('aria-pressed', 'true');
+  aloudRateLabel();
+  showChrome();
+  clearTimeout(state.chromeTimer);
+
+  await state.reader.readAloud({
+    rate: prefs.speech / 100,
+    onBlock: (text) => { $('#aloudLine').textContent = text.slice(0, 120); },
+    onEnd: () => { stopAloud(); toast('That is the end of the book.'); },
+    onFail: () => { stopAloud(); toast('This device would not read aloud just now.', 4000); },
+  });
+}
+
+function stopAloud() {
+  state.reader?.stopReading();
+  state.aloudPaused = false;
+  $('#aloudBar').hidden = true;
+  $('#btnAloud').setAttribute('aria-pressed', 'false');
+  $('#aloudLine').textContent = '';
+  setAloudIcon();
+}
+
+function setAloudIcon() {
+  const b = $('#aloudToggle');
+  if (!b) return;
+  b.innerHTML = state.aloudPaused
+    ? '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><path d="M8 5.2 19 12 8 18.8z" fill="currentColor"/></svg>'
+    : '<svg viewBox="0 0 24 24" class="ico" aria-hidden="true"><rect x="7" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/><rect x="13.6" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/></svg>';
+  b.setAttribute('aria-label', state.aloudPaused ? 'Continue reading' : 'Pause reading');
+}
+
 /* ══════════════ The coach ══════════════ */
 const coach = { step: 0, url: '', speaking: false };
 
@@ -693,6 +734,7 @@ async function openBook(id, startAt) {
 function closeBook(pop = true) {
   clearTimeout(state.chromeTimer);
   hidePopover();
+  stopAloud();
   state.reader?.destroy();
   state.reader = null;
   state.current = null;
@@ -1386,6 +1428,27 @@ function wire() {
     hidePopover();
   });
   $('#hlDelete').addEventListener('click', () => pendingSelection && deleteHighlight(pendingSelection.cfi));
+
+  // Reading aloud.
+  $('#btnAloud').addEventListener('click', () => {
+    if (state.reader?.isReading || !$('#aloudBar').hidden) stopAloud();
+    else startAloud();
+  });
+  $('#aloudStop').addEventListener('click', stopAloud);
+  $('#aloudToggle').addEventListener('click', () => {
+    state.aloudPaused = !state.aloudPaused;
+    if (state.aloudPaused) state.reader?.pauseReading();
+    else state.reader?.resumeReading();
+    setAloudIcon();
+  });
+  for (const el of $$('[data-speed]')) {
+    el.addEventListener('click', async () => {
+      prefs.speech = clamp(prefs.speech + (el.dataset.speed === '+' ? 10 : -10), 50, 200);
+      aloudRateLabel();
+      // The rate only takes on the next utterance, so restart from here.
+      if (state.reader?.isReading) { state.reader.stopReading(); await startAloud(); }
+    });
+  }
 
   $('#tapPrev').addEventListener('click', () => state.reader?.prev());
   $('#tapNext').addEventListener('click', () => state.reader?.next());

@@ -20,6 +20,7 @@ export const DEFAULTS = {
   capitals: true,       // illuminated drop capitals
   marginalia: true,     // creatures in the page margins
   sort: 'recent',
+  speech: 95,          // percent of normal speaking rate
 };
 
 let state = { ...DEFAULTS };

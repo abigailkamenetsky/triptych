@@ -12,7 +12,7 @@ import { join, relative, sep } from 'node:path';
 
 const ROOT = new URL('.', import.meta.url).pathname;
 
-const SKIP_DIRS = new Set(['art', 'node_modules', '.git', '.github']);
+const SKIP_DIRS = new Set(['art', 'node_modules', '.git', '.github', 'testbooks', 'tools']);
 const SKIP_FILES = new Set(['build.mjs', 'sw.js', '.DS_Store', 'README.md']);
 
 function walk(dir, out = []) {

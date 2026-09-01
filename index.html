@@ -258,6 +258,9 @@
     </button>
     <h2 class="chrome-title" id="readerTitle"></h2>
     <div class="chrome-actions">
+      <button class="glyph" id="btnAloud" aria-label="Read this book aloud" aria-pressed="false">
+        <svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg>
+      </button>
       <button class="glyph" id="btnSearch" aria-label="Search inside this book">
         <svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg>
       </button>
@@ -272,6 +275,27 @@
       </button>
     </div>
   </header>
+
+  <div class="aloud-bar" id="aloudBar" hidden>
+    <button class="aloud-btn" id="aloudToggle" aria-label="Pause reading">
+      <svg viewBox="0 0 24 24" class="ico" aria-hidden="true">
+        <rect x="7" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/>
+        <rect x="13.6" y="5" width="3.4" height="14" rx="1.2" fill="currentColor"/>
+      </svg>
+    </button>
+    <div class="aloud-text">
+      <p class="aloud-label">Reading aloud</p>
+      <p class="aloud-line" id="aloudLine"></p>
+    </div>
+    <div class="aloud-speed">
+      <button class="aloud-step" data-speed="-" aria-label="Slower">&minus;</button>
+      <span id="aloudRate">1.0×</span>
+      <button class="aloud-step" data-speed="+" aria-label="Faster">+</button>
+    </div>
+    <button class="aloud-btn" id="aloudStop" aria-label="Stop reading">
+      <svg class="ico" aria-hidden="true"><use href="#i-close"/></svg>
+    </button>
+  </div>
 
   <footer class="chrome chrome-bottom" id="chromeBottom">
     <div class="scrub-row">

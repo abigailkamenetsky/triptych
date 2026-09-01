@@ -3,3 +3,4 @@ node_modules/
 *.log
 art/plates/
 art/*-sheet.jpg
+testbooks/
