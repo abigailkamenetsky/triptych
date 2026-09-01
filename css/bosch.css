@@ -2564,12 +2564,8 @@
 
 /* ══════════════════════════════════════════════════════════════
    SUPPLIED PLATES.
-   The composed plates kept every figure inside a corner, so nine-slice
-   worked. The hand-made art puts figures along the edges too, and
-   border-image tiles the edge slice, which would repeat the bird-headed
-   reader down the whole left margin. A stretched plate frames the screen
-   exactly at any shape, and vine ornament carries a little stretch far
-   better than a border that is cropped away or repeated.
+   The base layer. Nine-slice below takes over wherever a plate is in play;
+   this is what remains for the composed stand-ins.
    ══════════════════════════════════════════════════════════════ */
 @layer wide {
   :root[data-frame="on"] .plate {
@@ -2877,16 +2873,33 @@
 }
 
 
+
+
+/* ══════════════════════════════════════════════════════════════
+   PLATES, NINE-SLICED.
+   Stretching the whole plate pulls every creature by however far the screen
+   differs from the art: 39 percent on a phone, 43 in a wide window. Slicing it
+   keeps all four corners at their true proportions and stretches only along
+   each edge, and the centre is blank parchment where stretching cannot be
+   seen. `stretch` rather than `round`, because repeating an edge tiles any
+   figure standing in it.
+   ══════════════════════════════════════════════════════════════ */
 @layer wide {
-  /* When the nearest plate is still a long way from the screen's shape,
-     showing it whole on its own paper beats pulling every creature 60 percent
-     out of true. The surround is the tone sampled from the plate, so the join
-     does not read as a letterbox. */
-  :root[data-frame="on"][data-plate-fit="contain"] .plate {
-    background-size: contain;
-    background-position: center top;
+  :root[data-frame="on"][data-plate-fit="fill"] .plate {
+    background: none;
+    border-style: solid;
+    border-color: transparent;
+    border-width: var(--plate-h) var(--plate-w);
+    border-image-source: var(--reading-frame);
+    /* From the measured band in assets/frames/index.json, so art with a
+       different border width follows without a code change. */
+    border-image-slice: var(--plate-slice-y) var(--plate-slice-x) fill;
+    border-image-width: var(--plate-h) var(--plate-w);
+    border-image-repeat: stretch;
   }
-  :root[data-frame="on"][data-plate-fit="contain"] #viewReader {
-    background: var(--frame-centre, var(--page));
-  }
+
+  /* Thickness follows the art: the corner piece is a fifth of the plate in
+     each direction, so the sides are drawn wider or narrower than the top and
+     bottom in exactly that proportion, or the corner figures squash. */
+  :root { --plate-h: clamp(46px, 13vh, 150px); --plate-w: var(--plate-h); }
 }

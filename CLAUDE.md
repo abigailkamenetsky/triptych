@@ -52,6 +52,30 @@ figure means a crop box and an inset, nothing more.
 Figures that fragment after GrabCut are dropped rather than shipped ragged.
 Abby has rejected ragged cutouts twice; the bar is seamless.
 
+## The reading page frame
+
+The plate is drawn with **`border-image`, nine-sliced, `repeat: stretch`**.
+Do not go back to `background-size: 100% 100%`.
+
+Stretching a whole plate to the screen pulls every creature by however far the
+screen differs from the art: measured at **-39% on a phone** and **+43% in a
+desktop window**, against only -7% and +8% on a real iPad. Nine-slice holds all
+four corners at their true proportions at any shape and puts the whole
+difference into the four edges, which are vine, and vine carries stretching
+along its own length without reading as distorted.
+
+`stretch`, never `round`. `round` tiles the edge slice, which repeats the
+bird-headed reader down the left margin. That is why an earlier pass abandoned
+nine-slice; the fault was the repeat mode, not the technique.
+
+The corner piece is a fifth of the plate each way, so `--plate-w` is set inline
+from the plate's own aspect in `applyFrame`. Setting the two border widths
+equal squashes whichever creature stands in the corner.
+
+Because the corners now hold at any shape, the `tall` and `wide` buckets are a
+refinement rather than a repair. The code picks them up automatically if art
+ever lands in `art/supplied/`.
+
 ## After changing any asset
 
 ```sh

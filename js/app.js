@@ -9,7 +9,7 @@ import { prefs, DEFAULTS, FONTS, MARGINS } from './prefs.js';
 import * as db from './db.js';
 import { Reader, setPageTone, HIGHLIGHT_FILL } from './reader.js';
 import { Summon } from './summon.js';
-import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc, stretchOf } from './frames.js';
+import { loadFrames, shapeFor, frameFor, sliceFor, frameSrc } from './frames.js';
 import * as catalogue from './catalogue.js';
 import { STEPS, speak, hush, canSpeak } from './coach.js';
 import { DEDICATION } from './dedication.js';
@@ -552,19 +552,19 @@ async function applyFrame(bookId) {
   if (!plate) { root.dataset.frame = 'off'; setPageTone(null); return; }
 
   const slice = sliceFor(shape);
-  // A plate close to the screen's shape is drawn edge to edge. Only a wild
-  // mismatch is contained instead. Showing a 3:4 plate whole on a phone leaves
-  // the border stopping two thirds down the page, which reads as broken, so
-  // moderate stretch wins until art of the right shape exists.
-  root.dataset.plateFit = stretchOf(shape) > 0.55 ? 'contain' : 'fill';
+  // Every plate is drawn edge to edge. Nine-slice holds the four corners at
+  // their true proportions whatever the screen's shape, so there is no longer
+  // a mismatch bad enough to need showing the plate whole on its own ground.
+  root.dataset.plateFit = 'fill';
   root.dataset.frame = 'on';
   root.style.setProperty('--reading-frame', `url("${frameSrc(plate.src)}")`);
   root.style.setProperty('--plate-slice-x', `${(slice.x * 100).toFixed(2)}%`);
   root.style.setProperty('--plate-slice-y', `${(slice.y * 100).toFixed(2)}%`);
-  // The corner slice keeps the plate's proportions, so the side borders are
-  // drawn wider or narrower than the top and bottom to match.
-  const plateAR = (shape === 'landscape' ? 1800 / 1350 : 1350 / 1800);
-  root.style.setProperty('--plate-w', `calc(var(--plate-h) * ${plateAR.toFixed(4)})`);
+  // The corner piece is a fifth of the plate each way, so the side border is
+  // drawn in the plate's own proportion to the top and bottom. Getting this
+  // wrong squashes whichever creature stands in the corner.
+  const ar = plate.aspect || 0.75;
+  root.style.setProperty('--plate-w', `calc(var(--plate-h) * ${ar.toFixed(4)})`);
   root.style.setProperty('--frame-centre', plate.centre);
   setPageTone(plate.centre);
   void stage;
