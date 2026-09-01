@@ -310,7 +310,11 @@ async function seedFirstRun() {
 
 /* ══════════════ The frontispiece ══════════════ */
 function showDedication() {
-  if (localStorage.getItem('triptych.dedicated') === '1') return Promise.resolve();
+  // The card is meant to be seen once, so proofing it would ordinarily cost
+  // the one launch it exists for. `?dedication` shows it again and, because
+  // that is a preview, leaves the real first launch unspent.
+  const preview = new URLSearchParams(location.search).has('dedication');
+  if (!preview && localStorage.getItem('triptych.dedicated') === '1') return Promise.resolve();
   const d = DEDICATION;
   if (!d?.lines?.length) { localStorage.setItem('triptych.dedicated', '1'); return Promise.resolve(); }
 
@@ -327,7 +331,7 @@ function showDedication() {
 
   return new Promise((resolve) => {
     enter.addEventListener('click', () => {
-      localStorage.setItem('triptych.dedicated', '1');
+      if (!preview) localStorage.setItem('triptych.dedicated', '1');
       card.style.transition = 'opacity 520ms var(--ease)';
       card.style.opacity = '0';
       setTimeout(() => { card.hidden = true; card.style.cssText = ''; resolve(); }, 520);
