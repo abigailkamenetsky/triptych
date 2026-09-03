@@ -68,9 +68,71 @@
   <p style="margin-top:16px; font-size:14px; color:#7d6e55">
     Build <code id="ver">…</code>
   </p>
+
+  <hr style="margin:26px 0 18px; border:0; border-top:1px solid #d8cdb4">
+  <h2 style="margin:0 0 8px; font-size:19px">Emptying the library</h2>
+  <p style="font-size:15px">
+    The step above never touches your books, because a reader who has lost a
+    library to a refresh does not get it back. This does: it removes every book,
+    bookmark and saved page from this device, so the app looks exactly as it
+    will on a device that has never seen it. There is no undo.
+  </p>
+  <p style="font-size:14px; color:#7d6e55; margin-top:8px" id="hasbooks">Counting…</p>
+  <button class="go" id="wipe" style="background:#bb4028; border:0; cursor:pointer; font:inherit; color:#fff">
+    Remove every book from this device
+  </button>
 </div>
 
 <script>
+  // Emptying the library is deliberately here and not in the app. The seed
+  // shelf changing does not remove books already imported, and it must not:
+  // an app that deletes a reader's books because a setting moved is worse than
+  // one with a stale shelf. So this lives on the page her mother never visits.
+  const wipeLibrary = async () => {
+    const btn = document.getElementById('wipe');
+    btn.textContent = 'Removing…';
+    btn.disabled = true;
+    try {
+      const dbs = await indexedDB.databases?.() || [{ name: 'triptych' }];
+      await Promise.all(dbs.filter((d) => d.name).map((d) => new Promise((res) => {
+        const req = indexedDB.deleteDatabase(d.name);
+        req.onsuccess = req.onerror = req.onblocked = res;
+      })));
+      try { localStorage.removeItem('triptych.dedicated'); } catch { /* fine */ }
+      btn.textContent = 'Removed. Open Triptych to see the empty shelf.';
+      btn.style.background = '#7d9059';
+    } catch {
+      btn.textContent = 'Could not remove them. Close other Triptych tabs and try again.';
+      btn.disabled = false;
+    }
+  };
+
+  const countBooks = async () => {
+    const note = document.getElementById('hasbooks');
+    try {
+      const db = await new Promise((res, rej) => {
+        const r = indexedDB.open('triptych', 2);
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+        r.onupgradeneeded = () => r.transaction?.abort();
+      });
+      const n = await new Promise((res) => {
+        const r = db.transaction('books').objectStore('books').count();
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(0);
+      });
+      db.close();
+      note.textContent = n === 0
+        ? 'This device has no books stored. The shelf is already empty.'
+        : `This device is storing ${n} ${n === 1 ? 'book' : 'books'}.`;
+    } catch {
+      note.textContent = 'This device has no library stored yet.';
+    }
+  };
+
+  document.getElementById('wipe').addEventListener('click', wipeLibrary);
+  countBooks();
+
   // Deliberately dependency free and outside the app. If the old worker is
   // serving stale files, this page is the one thing that can still get through,
   // because it was never in that worker's cache to begin with.

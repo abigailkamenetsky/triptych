@@ -342,18 +342,58 @@ function showDedication({ again = false } = {}) {
 }
 
 /* ══════════════ Choosing the voice ══════════════ */
-function buildVoiceSheet() {
-  const body = $('#sheetVoiceBody');
-  const reader = state.reader;
-  if (!reader) { body.innerHTML = '<p class="empty-note">Open a book first.</p>'; return; }
 
-  const voices = reader.voicesFor(reader.lang);
-  const info = reader.canSpeakBook();
+/* getVoices() answers empty until the engine has loaded them, and on a cold
+   start that is after this sheet is built. Waiting is the difference between
+   the picker listing her voices and telling her she has none. */
+function voicesReady() {
+  return new Promise((resolve) => {
+    if (!window.speechSynthesis) return resolve();
+    if (speechSynthesis.getVoices().length) return resolve();
+    const done = () => { clearTimeout(timer); resolve(); };
+    const timer = setTimeout(done, 2000);
+    speechSynthesis.addEventListener('voiceschanged', done, { once: true });
+  });
+}
+
+/* The device's own usable voices, ranked, for when no book is open to name a
+   language. Apple's novelty voices are excluded here too: Bad News and Boing
+   are no more welcome in a settings list than in a novel. */
+const NOVELTY_UI = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|kathy|princess|ralph|fred|bruce|agnes|vicki|victoria)\b/i;
+
+function rankedVoices() {
+  const all = speechSynthesis?.getVoices?.() || [];
+  const here = (navigator.language || 'en').toLowerCase().split('-')[0];
+  return all
+    .filter((v) => !NOVELTY_UI.test(v.name || ''))
+    .filter((v) => (v.lang || '').toLowerCase().startsWith(here) || v.default)
+    .sort((a, b) => {
+      const score = (v) => (/premium|enhanced|neural/i.test(v.name) ? 100 : 0) + (v.default ? 40 : 0) + (v.localService ? 25 : 0);
+      return score(b) - score(a);
+    })
+    .slice(0, 12);
+}
+
+async function buildVoiceSheet() {
+  const body = $('#sheetVoiceBody');
+  await voicesReady();
+  const reader = state.reader;
+
+  // Reachable with no book open, because that is when she will go looking for
+  // it. With a book open the list is narrowed to that book's language.
+  const lang = reader?.lang || '';
+  const voices = reader
+    ? reader.voicesFor(lang)
+    : rankedVoices('');
+  const info = reader
+    ? reader.canSpeakBook()
+    : { ok: !!voices.length, lang: '', better: voices.some((v) => /premium|enhanced|neural/i.test(v.name || '')) };
 
   if (!voices.length) {
     body.innerHTML = `
       <p class="empty-note" style="text-align:start">
-        This iPad has no voice for this book's language yet.
+        ${lang ? "This iPad has no voice for this book's language yet."
+               : 'This iPad has no reading voices installed yet.'}
       </p>
       <p class="group-title">Adding one</p>
       <p class="tiny-note">Settings, then Accessibility, then Spoken Content, then Voices. Choose the language and tap a voice to download it. Come back here afterwards.</p>`;
@@ -393,7 +433,8 @@ function buildVoiceSheet() {
       // Say a line in it, so the choice is made by ear and not by name.
       try {
         speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(reader.sampleLine());
+        const u = new SpeechSynthesisUtterance(
+          reader ? reader.sampleLine() : 'The garden is bare. Nothing has been planted here yet.');
         const v = voices.find((x) => x.name === name);
         if (v) { u.voice = v; u.lang = v.lang; }
         u.rate = prefs.speech / 100;
@@ -1245,6 +1286,12 @@ async function buildWorkshop() {
       <button class="btn btn-ghost btn-block" id="doRestore">Restore from a backup</button>
     </div>
 
+    <p class="group-title">Reading aloud</p>
+    <div class="row">
+      <span class="row-label"><b>The reading voice</b><small>Choose the voice, and find the warmer ones the iPad keeps behind a download.</small></span>
+      <button class="btn btn-ghost" id="pickVoice">Choose</button>
+    </div>
+
     <p class="group-title">The first page</p>
     <div class="row">
       <span class="row-label"><b>Read the dedication again</b><small>The card that was waiting the first time you opened Triptych.</small></span>
@@ -1279,6 +1326,12 @@ async function buildWorkshop() {
       Built for you. Every book lives on this device and nowhere else.
       Nothing is uploaded, nothing is tracked, and it works with no internet at all.
     </p>`;
+
+  $('#pickVoice', body)?.addEventListener('click', async () => {
+    closeSheets();
+    await buildVoiceSheet();
+    openSheet('#sheetVoice');
+  });
 
   $('#showDed', body)?.addEventListener('click', async () => {
     closeSheets();
@@ -1484,7 +1537,7 @@ function wire() {
     });
   }
 
-  $('#aloudVoice')?.addEventListener('click', () => { buildVoiceSheet(); openSheet('#sheetVoice'); });
+  $('#aloudVoice')?.addEventListener('click', async () => { await buildVoiceSheet(); openSheet('#sheetVoice'); });
 
   $('#fileInput').addEventListener('change', (e) => {
     importFiles(e.target.files);
