@@ -81,6 +81,9 @@ const cssEscape = (s) => String(s).replace(/["\\]/g, '\\$&');
  *
  * So: take any block that holds text and contains no smaller block inside it.
  */
+const FRONT_NAME = /cover|copyri|imprint|colophon|dedicat|epigraph|half.?title|titlepage|frontmatter|praise|acknowledg/i;
+const FRONT_TEXT = /all rights reserved|no part of this|\bisbn\b|library of congress|catalogu?ing in publication|first (edition|printing)|printed in the/i;
+
 const BLOCK_SEL = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, dd, div, section, article';
 
 export function blockElements(doc) {
@@ -310,22 +313,40 @@ export class Reader {
     const guide = declared(this.book.packaging?.guide, /^text$/i);
     if (guide) return guide;
 
-    // Nothing declared. Find the first section carrying enough prose to be a
-    // chapter rather than a title page or a colophon. Only the opening few
-    // are examined, because front matter is short and loading a whole book to
-    // answer this would cost more than it saves.
+    // Nothing declared, which is usual for a converted file. Measured on a
+    // real trade EPUB, the opening sections run:
+    //
+    //     cover        0 words
+    //     title        0 words
+    //     copyright  250 words,  2 links
+    //     contents   137 words, 63 links
+    //     Part One     0 words
+    //     prologue  8728 words,  0 links   <- the true start
+    //
+    // Length alone picks the copyright page, which is long without being
+    // prose. Three signals separate them: a copyright notice carries wording
+    // no chapter opens with, a table of contents is mostly links, and front
+    // matter is named for what it is.
     const items = this.book.spine?.spineItems || [];
-    for (const item of items.slice(0, 6)) {
-      let words = 0;
+    for (const item of items.slice(0, 12)) {
+      let words = 0, links = 0, head = '';
       try {
         await item.load(this.book.load.bind(this.book));
-        words = (item.document?.body?.textContent || '').trim().split(/\s+/).length;
+        const text = (item.document?.body?.textContent || '').trim();
+        words = text ? text.split(/\s+/).length : 0;
+        links = item.document?.querySelectorAll('a[href]').length || 0;
+        head = text.slice(0, 400).toLowerCase();
       } catch {
         // A section that will not load is not the one to open on.
       } finally {
         try { item.unload(); } catch { /* already unloaded */ }
       }
-      if (words >= 120) return item.href;
+
+      if (words < 120) continue;
+      if (links > 12) continue;
+      if (FRONT_TEXT.test(head)) continue;
+      if (FRONT_NAME.test(item.href || '') || FRONT_NAME.test(item.idref || '')) continue;
+      return item.href;
     }
     return null;
   }

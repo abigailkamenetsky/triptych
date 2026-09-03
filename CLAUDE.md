@@ -76,6 +76,26 @@ Because the corners now hold at any shape, the `tall` and `wide` buckets are a
 refinement rather than a repair. The code picks them up automatically if art
 ever lands in `art/supplied/`.
 
+## Where a book opens
+
+A new book opens where the book begins, not on its title page. EPUB 3 marks
+it in the nav landmarks and EPUB 2 in the OPF guide; `Reader._startOfText`
+reads those first.
+
+Converted files declare neither, so there is a fallback, and **length alone
+is the wrong test**. Measured on a real trade EPUB the opening runs cover 0w,
+title 0w, copyright **250w**, contents 137w with 63 links, part title 0w,
+prologue 8728w. A word count picks the copyright page. Three signals separate
+them: copyright wording no chapter opens with, a link count that gives away a
+contents page, and front matter named for what it is.
+
+Only the first 400 characters are tested for boilerplate, so a phrase that
+turns up later in a chapter cannot be mistaken for a copyright notice.
+
+This runs only when there is no saved place and no chapter was chosen. A
+saved position always wins, so **testing this needs a wiped origin**, or the
+remembered page hides whether the rule works at all.
+
 ## After changing any asset
 
 ```sh
