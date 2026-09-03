@@ -6,7 +6,7 @@
  * VERSION changes, and it takes over the next time the app is launched.
  */
 
-const VERSION = '7db670eab95f';
+const VERSION = '650c684350fb';
 const CACHE = 'triptych-' + VERSION;
 
 const PRECACHE = [

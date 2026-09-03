@@ -81,7 +81,7 @@ const cssEscape = (s) => String(s).replace(/["\\]/g, '\\$&');
  *
  * So: take any block that holds text and contains no smaller block inside it.
  */
-const FRONT_NAME = /cover|copyri|imprint|colophon|dedicat|epigraph|half.?title|titlepage|frontmatter|praise|acknowledg/i;
+const FRONT_NAME = /cover|copyri|imprint|colophon|dedicat|epigraph|half.?title|titlepage|frontmatter|praise|acknowledg|notice/i;
 const FRONT_TEXT = /all rights reserved|no part of this|\bisbn\b|library of congress|catalogu?ing in publication|first (edition|printing)|printed in the/i;
 
 const BLOCK_SEL = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, dd, div, section, article';
@@ -263,6 +263,9 @@ export class Reader {
     this.book = window.ePub(data);
     await this.book.ready;
     this.words = record.words || 0;
+    // Declared in the package metadata. Read-aloud needs it, because the
+    // device's own language is not the book's.
+    this.lang = (this.book.packaging?.metadata?.language || '').trim();
 
     this.rendition = this.book.renderTo(this.host, {
       width: '100%',
@@ -541,6 +544,32 @@ export class Reader {
     });
   }
 
+  /* A voice that speaks the book's language.
+
+     Without this a Russian book is read out by whatever voice the iPad
+     defaults to, which is the wrong language pronouncing the right letters.
+     The EPUB declares its language, so that is what the voice is chosen by,
+     preferring an exact regional match and falling back to the bare language. */
+  _voiceFor(lang) {
+    if (!lang) return null;
+    const want = lang.toLowerCase().replace(/_/g, '-');
+    const base = want.split('-')[0];
+    const voices = speechSynthesis.getVoices() || [];
+    const of = (v) => (v.lang || '').toLowerCase().replace(/_/g, '-');
+    return voices.find((v) => of(v) === want)
+        || voices.find((v) => of(v).startsWith(base + '-'))
+        || voices.find((v) => of(v) === base)
+        || null;
+  }
+
+  /* Whether this device can speak the book at all, so the app can say so
+     plainly rather than reading a Russian novel in an English accent. */
+  canSpeakBook() {
+    if (!window.speechSynthesis) return { ok: false, lang: this.lang || '' };
+    if (!this.lang) return { ok: true, lang: '' };
+    return { ok: !!this._voiceFor(this.lang), lang: this.lang };
+  }
+
   async readAloud({ rate = 0.95, onBlock, onEnd, onFail } = {}) {
     if (!window.speechSynthesis) return false;
     this.stopReading();
@@ -600,6 +629,11 @@ export class Reader {
 
       const u = new SpeechSynthesisUtterance(block.text);
       u.rate = rate;
+      if (this.lang) {
+        u.lang = this.lang;
+        const voice = this._voiceFor(this.lang);
+        if (voice) u.voice = voice;
+      }
       // Never continue synchronously from a handler. An engine with no voice
       // fails every utterance the instant it is spoken, and calling on from
       // inside onerror recurses until the stack gives out.
