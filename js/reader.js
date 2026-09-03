@@ -306,15 +306,25 @@ export class Reader {
      no chapter was chosen, and the front matter is still there behind her. */
   async _startOfText() {
     const declared = (list, re) => (list || []).find((e) => re.test(e?.type || ''))?.href;
+    const mark = declared(this.book.navigation?.landmarks, /bodymatter/i)
+              || declared(this.book.packaging?.guide, /^text$/i);
 
-    const landmark = declared(this.book.navigation?.landmarks, /bodymatter/i);
-    if (landmark) return landmark;
+    const items = this.book.spine?.spineItems || [];
 
-    const guide = declared(this.book.packaging?.guide, /^text$/i);
-    if (guide) return guide;
+    // A declaration says where to look, not necessarily where to stop. Demons
+    // marks its body at a page reading only "Part I", so the mark is used as a
+    // starting point and the same checks still have to pass. A book that marks
+    // its first chapter properly matches on the first try and returns at once.
+    let from = 0;
+    if (mark) {
+      const base = mark.split('#')[0].replace(/^.*\//, '');
+      const at = items.findIndex((it) => (it.href || '').split('#')[0].endsWith(base));
+      if (at < 0) return mark;
+      from = at;
+    }
 
-    // Nothing declared, which is usual for a converted file. Measured on a
-    // real trade EPUB, the opening sections run:
+    // Measured on a real trade EPUB, which declares nothing at all, the
+    // opening sections run:
     //
     //     cover        0 words
     //     title        0 words
@@ -327,8 +337,7 @@ export class Reader {
     // prose. Three signals separate them: a copyright notice carries wording
     // no chapter opens with, a table of contents is mostly links, and front
     // matter is named for what it is.
-    const items = this.book.spine?.spineItems || [];
-    for (const item of items.slice(0, 12)) {
+    for (const item of items.slice(from, from + 12)) {
       let words = 0, links = 0, head = '';
       try {
         await item.load(this.book.load.bind(this.book));
@@ -348,7 +357,7 @@ export class Reader {
       if (FRONT_NAME.test(item.href || '') || FRONT_NAME.test(item.idref || '')) continue;
       return item.href;
     }
-    return null;
+    return mark || null;
   }
 
   /* Roughly five and a half characters to the word, which is the usual figure
