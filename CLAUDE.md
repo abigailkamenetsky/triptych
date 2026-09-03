@@ -110,8 +110,12 @@ minute, so any offline test needs a generous wait.
 
 ## Open items
 
-- Abby still owes the four seed titles and the dedication text
-  (`js/dedication.js`, the only file to edit for it).
+- The dedication is written and live. It shows once on first launch, and
+  after that from the rail item or `?dedication`, neither of which spends
+  the first-launch flag.
+- Abby still owes three seed titles. Yesteryear is the fourth and stays in
+  gitignored `testbooks/`, because the repo is public and Pages would
+  distribute it. It goes onto her mother's iPad through the file picker.
 - Not built from her mockup: book detail with the chapter list, Reading Now,
   Collections, Highlights.
 - `messenger` and `drummer` cut clean under GrabCut. Earlier notes about ground

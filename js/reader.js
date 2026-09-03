@@ -280,14 +280,54 @@ export class Reader {
       try { this.book.locations.load(state.locations); } catch { /* regenerate below */ }
     }
 
-    // A chapter picked from the book's page wins over where she left off.
-    await this.rendition.display(startAt || state?.cfi || undefined);
+    // A chapter picked from the book's page wins over where she left off,
+    // and where she left off wins over the front matter.
+    const from = startAt || state?.cfi || await this._startOfText();
+    await this.rendition.display(from || undefined);
 
     if (!this.book.locations.length()) this._buildLocations();
     else if (!this.words) this._countWords();
 
     this._watchResize();
     return this.book;
+  }
+
+  /* Where a book actually begins.
+
+     Opening a new book on its title page means tapping through a title, an
+     imprint and sometimes a copyright notice before reaching a sentence. Every
+     other reader skips that, and the books say where to skip to: EPUB 3 marks
+     it in the nav landmarks, EPUB 2 in the OPF guide.
+
+     Nothing is guessed away. This only runs when there is no saved place and
+     no chapter was chosen, and the front matter is still there behind her. */
+  async _startOfText() {
+    const declared = (list, re) => (list || []).find((e) => re.test(e?.type || ''))?.href;
+
+    const landmark = declared(this.book.navigation?.landmarks, /bodymatter/i);
+    if (landmark) return landmark;
+
+    const guide = declared(this.book.packaging?.guide, /^text$/i);
+    if (guide) return guide;
+
+    // Nothing declared. Find the first section carrying enough prose to be a
+    // chapter rather than a title page or a colophon. Only the opening few
+    // are examined, because front matter is short and loading a whole book to
+    // answer this would cost more than it saves.
+    const items = this.book.spine?.spineItems || [];
+    for (const item of items.slice(0, 6)) {
+      let words = 0;
+      try {
+        await item.load(this.book.load.bind(this.book));
+        words = (item.document?.body?.textContent || '').trim().split(/\s+/).length;
+      } catch {
+        // A section that will not load is not the one to open on.
+      } finally {
+        try { item.unload(); } catch { /* already unloaded */ }
+      }
+      if (words >= 120) return item.href;
+    }
+    return null;
   }
 
   /* Roughly five and a half characters to the word, which is the usual figure
