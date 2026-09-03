@@ -2903,3 +2903,27 @@
      bottom in exactly that proportion, or the corner figures squash. */
   :root { --plate-h: clamp(46px, 13vh, 150px); --plate-w: var(--plate-h); }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   A ROW THAT IS ITSELF THE BUTTON.
+   The voice list is tapped to preview, so each row is a <button>, and a
+   button centres its content and inherits none of the page's type. Both
+   have to be put back or the row stops matching every other row in the app.
+   ══════════════════════════════════════════════════════════════ */
+@layer wide {
+  .row-tap {
+    width: 100%;
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .row-tap:last-child { border-bottom: 0; }
+  .row-tap:hover .row-label b { color: var(--accent); }
+  .row-tap[aria-pressed="true"] .row-label b { color: var(--accent); }
+}

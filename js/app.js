@@ -341,6 +341,69 @@ function showDedication({ again = false } = {}) {
   });
 }
 
+/* ══════════════ Choosing the voice ══════════════ */
+function buildVoiceSheet() {
+  const body = $('#sheetVoiceBody');
+  const reader = state.reader;
+  if (!reader) { body.innerHTML = '<p class="empty-note">Open a book first.</p>'; return; }
+
+  const voices = reader.voicesFor(reader.lang);
+  const info = reader.canSpeakBook();
+
+  if (!voices.length) {
+    body.innerHTML = `
+      <p class="empty-note" style="text-align:start">
+        This iPad has no voice for this book's language yet.
+      </p>
+      <p class="group-title">Adding one</p>
+      <p class="tiny-note">Settings, then Accessibility, then Spoken Content, then Voices. Choose the language and tap a voice to download it. Come back here afterwards.</p>`;
+    return;
+  }
+
+  const rows = voices.map((v) => {
+    const on = (prefs.voice || voices[0].name) === v.name;
+    const better = /premium|enhanced|neural/i.test(v.name);
+    return `
+      <button class="row row-tap" data-voice="${escapeHtml(v.name)}" aria-pressed="${on}">
+        <span class="row-label">
+          <b>${escapeHtml(v.name.replace(/\s*\((enhanced|premium)\)/i, ''))}${better ? ' <span class="hunted">richer</span>' : ''}</b>
+          <small>${v.localService ? 'Works with no internet' : 'Needs internet'}</small>
+        </span>
+        ${on ? '<span class="hunted">Reading</span>' : '<span class="btn btn-ghost">Hear it</span>'}
+      </button>`;
+  }).join('');
+
+  body.innerHTML = `
+    <p class="tiny-note" style="margin-top:0">Tap a voice to hear it read a line. The one marked is the one she will hear.</p>
+    <div class="finds">${rows}</div>
+    ${info.better ? '' : `
+      <p class="group-title">A warmer voice</p>
+      <p class="tiny-note">
+        The voices above are the small ones the iPad ships with. Apple has much
+        better versions, free, and they work with no internet once installed.
+        Settings, then Accessibility, then Spoken Content, then Voices. Pick the
+        language, then choose a voice marked Enhanced or Premium and let it
+        download. It is a large improvement and it takes a minute.
+      </p>`}`;
+
+  for (const el of $$('[data-voice]', body)) {
+    el.addEventListener('click', () => {
+      const name = el.dataset.voice;
+      prefs.voice = name;
+      // Say a line in it, so the choice is made by ear and not by name.
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(reader.sampleLine());
+        const v = voices.find((x) => x.name === name);
+        if (v) { u.voice = v; u.lang = v.lang; }
+        u.rate = prefs.speech / 100;
+        speechSynthesis.speak(u);
+      } catch { /* a device that will not preview still keeps the choice */ }
+      buildVoiceSheet();
+    });
+  }
+}
+
 /* ══════════════ Book detail ══════════════ */
 const hoursOf = (words) => {
   if (!words) return '';
@@ -593,6 +656,7 @@ async function startAloud() {
 
   await state.reader.readAloud({
     rate: prefs.speech / 100,
+    voiceName: prefs.voice || '',
     onBlock: (text) => { $('#aloudLine').textContent = text.slice(0, 120); },
     onEnd: () => { stopAloud(); toast('That is the end of the book.'); },
     onFail: () => { stopAloud(); toast('This device would not read aloud just now.', 4000); },
@@ -1419,6 +1483,8 @@ function wire() {
       renderShelf();
     });
   }
+
+  $('#aloudVoice')?.addEventListener('click', () => { buildVoiceSheet(); openSheet('#sheetVoice'); });
 
   $('#fileInput').addEventListener('change', (e) => {
     importFiles(e.target.files);

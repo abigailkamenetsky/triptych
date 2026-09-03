@@ -21,6 +21,7 @@ export const DEFAULTS = {
   marginalia: true,     // creatures in the page margins
   sort: 'recent',
   speech: 95,          // percent of normal speaking rate
+  voice: '',           // her chosen voice by name, or the best ranked one
 };
 
 let state = { ...DEFAULTS };

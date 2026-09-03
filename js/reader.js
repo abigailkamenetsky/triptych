@@ -81,6 +81,11 @@ const cssEscape = (s) => String(s).replace(/["\\]/g, '\\$&');
  *
  * So: take any block that holds text and contains no smaller block inside it.
  */
+/* Apple ships these beside the real voices. They are jokes and effects, and
+   one of them being picked by accident would be the whole read-aloud feature
+   ruined without any error to explain it. */
+const NOVELTY = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|kathy|princess|ralph|fred|bruce|agnes|vicki|victoria)\b/i;
+
 const FRONT_NAME = /cover|copyri|imprint|colophon|dedicat|epigraph|half.?title|titlepage|frontmatter|praise|acknowledg|notice/i;
 const FRONT_TEXT = /all rights reserved|no part of this|\bisbn\b|library of congress|catalogu?ing in publication|first (edition|printing)|printed in the/i;
 
@@ -544,33 +549,87 @@ export class Reader {
     });
   }
 
-  /* A voice that speaks the book's language.
+  /* A line of the book she is actually on, for previewing a voice. Hearing a
+     voice say a made-up sentence tells her much less than hearing it say
+     Bulgakov. */
+  sampleLine() {
+    const blocks = this._currentBlocks?.() || [];
+    for (const b of blocks) {
+      const t = (b.text || '').trim();
+      if (t.length > 40) return t.slice(0, 220);
+    }
+    return 'The garden is bare. Nothing has been planted here yet.';
+  }
 
-     Without this a Russian book is read out by whatever voice the iPad
-     defaults to, which is the wrong language pronouncing the right letters.
-     The EPUB declares its language, so that is what the voice is chosen by,
-     preferring an exact regional match and falling back to the bare language. */
-  _voiceFor(lang) {
-    if (!lang) return null;
-    const want = lang.toLowerCase().replace(/_/g, '-');
-    const base = want.split('-')[0];
+  /* Every voice that can speak this language, best first.
+
+     Taking the first match is not safe. Measured on one machine, the English
+     list holds Bad News, Bells, Boing, Bubbles and Cellos: Apple's novelty
+     voices, sitting in the same list as the real ones, and a novel read in
+     Boing is not a gift.
+
+     Ranking also matters because iPadOS ships the compact voices and keeps the
+     good ones behind a download. When an Enhanced or Premium voice has been
+     installed it belongs at the top, because the difference between the two
+     tiers is most of the difference between a machine and a person. */
+  voicesFor(lang) {
     const voices = speechSynthesis.getVoices() || [];
+    if (!voices.length) return [];
     const of = (v) => (v.lang || '').toLowerCase().replace(/_/g, '-');
-    return voices.find((v) => of(v) === want)
-        || voices.find((v) => of(v).startsWith(base + '-'))
-        || voices.find((v) => of(v) === base)
-        || null;
+    const want = (lang || '').toLowerCase().replace(/_/g, '-');
+    const base = want.split('-')[0];
+
+    const speaks = want
+      ? voices.filter((v) => of(v) === want || of(v).startsWith(base + '-') || of(v) === base)
+      : voices.filter((v) => v.default || of(v).startsWith('en'));
+
+    return speaks
+      .map((v) => ({ v, score: this._rank(v, want) }))
+      .filter((x) => x.score > -500)
+      .sort((a, b) => b.score - a.score)
+      .map((x) => x.v);
+  }
+
+  _rank(v, want) {
+    const name = v.name || '';
+    if (NOVELTY.test(name)) return -1000;
+    let score = 0;
+    if (/premium|enhanced|neural/i.test(name)) score += 100;
+    if (v.default) score += 40;
+    // Offline matters here more than usual: the whole app works with no
+    // internet, and a network voice would silently stop working on a plane.
+    if (v.localService) score += 25;
+    if (want && (v.lang || '').toLowerCase().replace(/_/g, '-') === want) score += 10;
+    return score;
+  }
+
+  /* The voice to actually use: her choice when it is still installed,
+     otherwise the best ranked one. */
+  _voiceFor(lang, preferredName) {
+    const ranked = this.voicesFor(lang);
+    if (!ranked.length) return null;
+    if (preferredName) {
+      const chosen = ranked.find((v) => v.name === preferredName);
+      if (chosen) return chosen;
+    }
+    return ranked[0];
   }
 
   /* Whether this device can speak the book at all, so the app can say so
      plainly rather than reading a Russian novel in an English accent. */
   canSpeakBook() {
-    if (!window.speechSynthesis) return { ok: false, lang: this.lang || '' };
-    if (!this.lang) return { ok: true, lang: '' };
-    return { ok: !!this._voiceFor(this.lang), lang: this.lang };
+    if (!window.speechSynthesis) return { ok: false, lang: this.lang || '', better: false };
+    const ranked = this.voicesFor(this.lang);
+    return {
+      ok: !!ranked.length,
+      lang: this.lang || '',
+      // Whether anything installed is better than the compact default, so the
+      // app can point at the download rather than leaving her with the robot.
+      better: ranked.some((v) => /premium|enhanced|neural/i.test(v.name || '')),
+    };
   }
 
-  async readAloud({ rate = 0.95, onBlock, onEnd, onFail } = {}) {
+  async readAloud({ rate = 0.95, voiceName = '', onBlock, onEnd, onFail } = {}) {
     if (!window.speechSynthesis) return false;
     this.stopReading();
     await this._voicesReady();
@@ -629,11 +688,9 @@ export class Reader {
 
       const u = new SpeechSynthesisUtterance(block.text);
       u.rate = rate;
-      if (this.lang) {
-        u.lang = this.lang;
-        const voice = this._voiceFor(this.lang);
-        if (voice) u.voice = voice;
-      }
+      if (this.lang) u.lang = this.lang;
+      const voice = this._voiceFor(this.lang, voiceName);
+      if (voice) u.voice = voice;
       // Never continue synchronously from a handler. An engine with no voice
       // fails every utterance the instant it is spoken, and calling on from
       // inside onerror recurses until the stack gives out.
